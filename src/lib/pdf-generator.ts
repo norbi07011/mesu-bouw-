@@ -35,11 +35,26 @@ export async function generateInvoicePDF(
     .header {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
       margin-bottom: 30px;
       padding-bottom: 20px;
       border-bottom: 2px solid #000;
     }
-    .company-info { flex: 1; }
+    .company-info { 
+      flex: 1;
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+    }
+    .company-logo {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .company-details {
+      flex: 1;
+    }
     .invoice-title {
       font-size: 24pt;
       font-weight: 700;
@@ -177,8 +192,11 @@ export async function generateInvoicePDF(
 <body>
   <div class="header">
     <div class="company-info">
-      <div class="invoice-title">${t.invoice}</div>
-      <div class="invoice-number">${invoice.invoice_number}</div>
+      ${company.logo_url ? `<img src="${company.logo_url}" alt="${company.name}" class="company-logo">` : ''}
+      <div class="company-details">
+        <div class="invoice-title">${t.invoice}</div>
+        <div class="invoice-number">${invoice.invoice_number}</div>
+      </div>
     </div>
   </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useKV } from '@github/spark/hooks';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Upload, Image as ImageIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Company, Language } from '@/types';
 
@@ -32,11 +34,36 @@ export default function Settings() {
     default_payment_term_days: 7,
     default_vat_rate: 21,
     currency: 'EUR',
+    logo_url: '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });
 
   const [formData, setFormData] = useState(company!);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be smaller than 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setFormData({ ...formData, logo_url: dataUrl });
+      toast.success('Logo uploaded');
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = () => {
     if (!formData) return;
@@ -71,6 +98,46 @@ export default function Settings() {
               <CardDescription>NORBS SERVICE company information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-start gap-6">
+                  <div className="space-y-2">
+                    <Label>Company Logo</Label>
+                    <div className="flex items-center gap-4">
+                      <Avatar className="w-24 h-24">
+                        {formData.logo_url ? (
+                          <AvatarImage src={formData.logo_url} alt="Company logo" />
+                        ) : (
+                          <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                            <ImageIcon size={32} />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="space-y-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="mr-2" size={16} />
+                          Upload Logo
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoUpload}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          PNG, JPG up to 2MB. Will appear on invoices.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">{t('settings.name')}</Label>

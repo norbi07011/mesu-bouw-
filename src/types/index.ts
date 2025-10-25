@@ -18,6 +18,7 @@ export interface Company {
   default_payment_term_days: number;
   default_vat_rate: number;
   currency: string;
+  logo_url?: string;
   created_at: string;
   updated_at: string;
 }

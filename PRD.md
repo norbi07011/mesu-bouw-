@@ -16,11 +16,11 @@ A professional, offline-capable invoice management system for NORBS SERVICE with
 ## Essential Features
 
 ### Company Settings Management
-- **Functionality**: Configure NORBS SERVICE company details (VAT, IBAN, contact info)
-- **Purpose**: Centralize business information for invoice generation
+- **Functionality**: Configure NORBS SERVICE company details (VAT, IBAN, contact info, logo/profile picture)
+- **Purpose**: Centralize business information and branding for invoice generation
 - **Trigger**: Settings page or first-time setup
-- **Progression**: Navigate to settings → Edit company form → Save → Toast confirmation
-- **Success criteria**: Data persists and appears on generated invoices
+- **Progression**: Navigate to settings → Edit company form → Upload logo → Save → Toast confirmation
+- **Success criteria**: Data persists, logo appears on generated invoices
 
 ### Client Management
 - **Functionality**: CRUD operations for client database with search and filtering
@@ -44,11 +44,11 @@ A professional, offline-capable invoice management system for NORBS SERVICE with
 - **Success criteria**: Invoice number increments correctly with week/year display, Dutch VAT rates apply correctly (0%/9%/21%), totals calculate accurately, PDF generates successfully with all Dutch requirements
 
 ### PDF Generation with QR Code
-- **Functionality**: Generate professional PDF invoices with SEPA EPC QR codes for payment, ISO week numbers, Dutch tax compliance details
-- **Purpose**: Provide print-ready, scannable invoices for clients meeting Dutch invoicing standards
-- **Trigger**: "Generate PDF" button on invoice detail
-- **Progression**: Select invoice → Generate PDF → Render HTML template with Dutch formatting → Create QR code → Download PDF
-- **Success criteria**: PDF contains all invoice data with Dutch standards (week number, BTW details), QR code scans correctly with SEPA payment info, VAT breakdown shows correct Dutch rates
+- **Functionality**: Generate professional PDF/HTML invoices with SEPA EPC QR codes for payment, company logo, ISO week numbers, Dutch tax compliance details; Export in multiple formats (PDF, CSV, JSON, XML, Excel)
+- **Purpose**: Provide print-ready, scannable invoices for clients meeting Dutch invoicing standards with flexible export options for accounting systems
+- **Trigger**: "Download" dropdown menu on invoice list
+- **Progression**: Select invoice → Choose format (PDF/Excel/CSV/JSON/XML) → Generate file → Download
+- **Success criteria**: PDF contains all invoice data with company logo, Dutch standards (week number, BTW details), QR code scans correctly with SEPA payment info, VAT breakdown shows correct Dutch rates; All export formats contain complete invoice data
 
 ### Financial Reports
 - **Functionality**: Generate annual/monthly reports with totals, charts, top clients
@@ -137,6 +137,8 @@ Subtle and purposeful - animations should reinforce actions (save confirmations,
   - FileText (invoice), Users (clients), Package (products)
   - ChartBar (reports), Gear (settings), DownloadSimple (export)
   - QrCode (QR payment), CalendarBlank (dates), CurrencyEur (amounts)
+  - FilePdf (PDF export), FileCsv (CSV export), FileXls (Excel export), FileCode (JSON/XML export)
+  - Upload (logo/image upload), Image (image placeholder)
   
 - **Spacing**: 
   - Container padding: p-6 (24px)

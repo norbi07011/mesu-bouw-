@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileText, DownloadSimple, CheckCircle } from '@phosphor-icons/react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Plus, FileText, DownloadSimple, CheckCircle, FilePdf, FileCsv, FileCode, FileXls } from '@phosphor-icons/react';
 import { Invoice, Client, Company } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/invoice-utils';
 import { toast } from 'sonner';
 import { generateInvoicePDF } from '@/lib/pdf-generator';
+import { exportToCSV, exportToJSON, exportToExcel, exportToXML } from '@/lib/export-utils';
 
 interface InvoicesProps {
   onNavigate: (page: string) => void;
@@ -49,6 +51,66 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
       toast.success('PDF generated');
     } catch (error) {
       toast.error('Failed to generate PDF');
+      console.error(error);
+    }
+  };
+
+  const handleExportCSV = async (invoice: Invoice) => {
+    const client = clients?.find(c => c.id === invoice.client_id);
+    if (!client || !company) {
+      toast.error('Missing data');
+      return;
+    }
+    try {
+      await exportToCSV(invoice, company, client);
+      toast.success('CSV exported');
+    } catch (error) {
+      toast.error('Failed to export CSV');
+      console.error(error);
+    }
+  };
+
+  const handleExportJSON = async (invoice: Invoice) => {
+    const client = clients?.find(c => c.id === invoice.client_id);
+    if (!client || !company) {
+      toast.error('Missing data');
+      return;
+    }
+    try {
+      await exportToJSON(invoice, company, client);
+      toast.success('JSON exported');
+    } catch (error) {
+      toast.error('Failed to export JSON');
+      console.error(error);
+    }
+  };
+
+  const handleExportExcel = async (invoice: Invoice) => {
+    const client = clients?.find(c => c.id === invoice.client_id);
+    if (!client || !company) {
+      toast.error('Missing data');
+      return;
+    }
+    try {
+      await exportToExcel(invoice, company, client);
+      toast.success('Excel exported');
+    } catch (error) {
+      toast.error('Failed to export Excel');
+      console.error(error);
+    }
+  };
+
+  const handleExportXML = async (invoice: Invoice) => {
+    const client = clients?.find(c => c.id === invoice.client_id);
+    if (!client || !company) {
+      toast.error('Missing data');
+      return;
+    }
+    try {
+      await exportToXML(invoice, company, client);
+      toast.success('XML exported');
+    } catch (error) {
+      toast.error('Failed to export XML');
       console.error(error);
     }
   };
@@ -117,14 +179,40 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
                         <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleGeneratePDF(invoice)}
-                              title={t('invoices.generatePDF')}
-                            >
-                              <DownloadSimple />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Download invoice"
+                                >
+                                  <DownloadSimple />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleGeneratePDF(invoice)}>
+                                  <FilePdf className="mr-2" size={16} />
+                                  Download PDF/HTML
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExportExcel(invoice)}>
+                                  <FileXls className="mr-2" size={16} />
+                                  Download Excel
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleExportCSV(invoice)}>
+                                  <FileCsv className="mr-2" size={16} />
+                                  Export as CSV
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExportJSON(invoice)}>
+                                  <FileCode className="mr-2" size={16} />
+                                  Export as JSON
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExportXML(invoice)}>
+                                  <FileCode className="mr-2" size={16} />
+                                  Export as XML
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                             {invoice.status !== 'paid' && (
                               <Button
                                 variant="ghost"
