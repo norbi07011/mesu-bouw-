@@ -37,18 +37,18 @@ A professional, offline-capable invoice management system for NORBS SERVICE with
 - **Success criteria**: Products auto-populate invoice lines with correct pricing
 
 ### Invoice Creation & Management
-- **Functionality**: Generate invoices with automatic numbering (FV-YYYY-MM-XXX), line items, VAT calculation
-- **Purpose**: Core business function - billing clients professionally
+- **Functionality**: Generate invoices with automatic numbering (FV-YYYY-MM-XXX), line items, Dutch VAT calculation (0%, 9%, 21%), week number display, ISO date standards
+- **Purpose**: Core business function - billing clients professionally according to Dutch market standards
 - **Trigger**: "New Invoice" button from dashboard or invoices page
-- **Progression**: New invoice → Select client → Add line items → Review totals → Generate number → Save → Generate PDF
-- **Success criteria**: Invoice number increments correctly, totals calculate accurately, PDF generates successfully
+- **Progression**: New invoice → Select client → Add line items → Configure Dutch VAT rates → Review totals with week/year breakdown → Generate number → Save → Generate PDF
+- **Success criteria**: Invoice number increments correctly with week/year display, Dutch VAT rates apply correctly (0%/9%/21%), totals calculate accurately, PDF generates successfully with all Dutch requirements
 
 ### PDF Generation with QR Code
-- **Functionality**: Generate professional PDF invoices with SEPA EPC QR codes for payment
-- **Purpose**: Provide print-ready, scannable invoices for clients
+- **Functionality**: Generate professional PDF invoices with SEPA EPC QR codes for payment, ISO week numbers, Dutch tax compliance details
+- **Purpose**: Provide print-ready, scannable invoices for clients meeting Dutch invoicing standards
 - **Trigger**: "Generate PDF" button on invoice detail
-- **Progression**: Select invoice → Generate PDF → Render HTML template → Create QR code → Download PDF
-- **Success criteria**: PDF contains all invoice data, QR code scans correctly with SEPA payment info
+- **Progression**: Select invoice → Generate PDF → Render HTML template with Dutch formatting → Create QR code → Download PDF
+- **Success criteria**: PDF contains all invoice data with Dutch standards (week number, BTW details), QR code scans correctly with SEPA payment info, VAT breakdown shows correct Dutch rates
 
 ### Financial Reports
 - **Functionality**: Generate annual/monthly reports with totals, charts, top clients
@@ -67,10 +67,12 @@ A professional, offline-capable invoice management system for NORBS SERVICE with
 ## Edge Case Handling
 - **Empty States** - Show helpful CTAs when no clients/products/invoices exist
 - **Duplicate Prevention** - Validate unique invoice numbers with month/year counters
-- **VAT Edge Cases** - Support 0% reverse charge with explanatory notes
+- **Dutch VAT Edge Cases** - Support 0% reverse charge, 9% reduced rate, 21% standard rate with explanatory notes
 - **Data Loss Prevention** - Auto-save drafts, confirm destructive actions
-- **Invalid QR Data** - Validate IBAN format before QR generation
-- **Number Formatting** - Handle locale-specific decimal/thousand separators
+- **Invalid QR Data** - Validate IBAN format before QR generation (NL format for Dutch banks)
+- **Number Formatting** - Handle Dutch locale decimal/thousand separators (comma for decimal, dot for thousands)
+- **Week Number Calculation** - ISO 8601 week numbering for accurate Dutch business week references
+- **Payment Terms** - Default to 14 days (Dutch standard) but allow 7/30/60 day options
 
 ## Design Direction
 The design should feel professional, trustworthy, and efficient - like a premium business tool that accountants and business owners rely on daily. Minimal interface with clear information hierarchy, focusing on data clarity and task completion speed.

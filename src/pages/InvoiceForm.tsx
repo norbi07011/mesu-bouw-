@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash } from '@phosphor-icons/react';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash, CalendarBlank, Hash } from '@phosphor-icons/react';
 import { Invoice, InvoiceLine, Client, Product, Company, InvoiceCounter } from '@/types';
 import { toast } from 'sonner';
 import {
@@ -17,6 +19,8 @@ import {
   generateSEPAQRPayload,
   getNextInvoiceNumber,
   formatCurrency,
+  getISOWeekNumber,
+  getInvoiceNumberBreakdown,
 } from '@/lib/invoice-utils';
 
 interface InvoiceFormProps {
@@ -33,9 +37,11 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentTermDays, setPaymentTermDays] = useState(company?.default_payment_term_days || 7);
+  const [paymentTermDays, setPaymentTermDays] = useState(company?.default_payment_term_days || 14);
   const [reverseCharge, setReverseCharge] = useState(false);
   const [notes, setNotes] = useState('');
+  const [currency, setCurrency] = useState('EUR');
+  const [language, setLanguage] = useState('nl');
   const [lines, setLines] = useState<Array<Partial<InvoiceLine>>>([
     {
       description: '',
@@ -44,6 +50,15 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
       vat_rate: company?.default_vat_rate || 21,
     },
   ]);
+
+  const DUTCH_VAT_RATES = [
+    { value: 0, label: '0% (VAT exempt / Export)' },
+    { value: 9, label: '9% (Reduced rate)' },
+    { value: 21, label: '21% (Standard rate)' },
+  ];
+
+  const invoiceBreakdown = useMemo(() => getInvoiceNumberBreakdown(issueDate), [issueDate]);
+  const weekNumber = useMemo(() => getISOWeekNumber(issueDate), [issueDate]);
 
   const dueDate = useMemo(() => addDays(issueDate, paymentTermDays), [issueDate, paymentTermDays]);
 
@@ -206,7 +221,19 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-semibold">{t('invoiceForm.title')}</h1>
+        <div>
+          <h1 className="text-3xl font-semibold">{t('invoiceForm.title')}</h1>
+          <div className="flex items-center gap-3 mt-2">
+            <Badge variant="outline" className="gap-1">
+              <CalendarBlank size={14} />
+              Week {weekNumber}, {invoiceBreakdown.year}
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <Hash size={14} />
+              Month {invoiceBreakdown.month.toString().padStart(2, '0')}/{invoiceBreakdown.year}
+            </Badge>
+          </div>
+        </div>
         <Button variant="outline" onClick={() => onNavigate('invoices')}>
           {t('common.cancel')}
         </Button>
@@ -216,12 +243,12 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
         <Card>
           <CardHeader>
             <CardTitle>Invoice Details</CardTitle>
-            <CardDescription>Basic invoice information</CardDescription>
+            <CardDescription>Client and date information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client">{t('invoiceForm.selectClient')}</Label>
+                <Label htmlFor="client">{t('invoiceForm.selectClient')} *</Label>
                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                   <SelectTrigger id="client">
                     <SelectValue placeholder={t('invoiceForm.selectClient')} />
@@ -237,7 +264,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="issueDate">{t('invoiceForm.issueDate')}</Label>
+                <Label htmlFor="issueDate">{t('invoiceForm.issueDate')} *</Label>
                 <Input
                   id="issueDate"
                   type="date"
@@ -247,29 +274,69 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="paymentTerm">{t('invoiceForm.paymentTerm')}</Label>
-                <Input
-                  id="paymentTerm"
-                  type="number"
-                  value={paymentTermDays}
-                  onChange={(e) => setPaymentTermDays(parseInt(e.target.value) || 0)}
-                />
+                <Label htmlFor="paymentTerm">Payment term (days) *</Label>
+                <Select 
+                  value={paymentTermDays.toString()} 
+                  onValueChange={(v) => setPaymentTermDays(parseInt(v))}
+                >
+                  <SelectTrigger id="paymentTerm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 days</SelectItem>
+                    <SelectItem value="14">14 days (Standard NL)</SelectItem>
+                    <SelectItem value="30">30 days</SelectItem>
+                    <SelectItem value="60">60 days</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dueDate">{t('invoiceForm.dueDate')}</Label>
-                <Input id="dueDate" type="date" value={dueDate} disabled />
+                <Input 
+                  id="dueDate" 
+                  type="date" 
+                  value={dueDate} 
+                  disabled 
+                  className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="language">Language</Label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger id="language">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nl">Dutch (Nederlands)</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="pl">Polish (Polski)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 pt-2">
               <Checkbox
                 id="reverseCharge"
                 checked={reverseCharge}
                 onCheckedChange={(checked) => setReverseCharge(checked as boolean)}
               />
               <Label htmlFor="reverseCharge" className="font-normal">
-                {t('invoiceForm.reverseCharge')}
+                {t('invoiceForm.reverseCharge')} (Reverse charge - 0% VAT for EU B2B)
               </Label>
             </div>
           </CardContent>
@@ -280,7 +347,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>{t('invoiceForm.lines')}</CardTitle>
-                <CardDescription>Add products or services</CardDescription>
+                <CardDescription>Products, services and line items</CardDescription>
               </div>
               <Button onClick={handleAddLine} size="sm">
                 <Plus className="mr-2" />
@@ -291,9 +358,9 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
           <CardContent>
             <div className="space-y-4">
               {lines.map((line, index) => (
-                <div key={index} className="p-4 border rounded-lg space-y-3">
+                <div key={index} className="p-4 border rounded-lg space-y-3 bg-card">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm">Line {index + 1}</span>
+                    <span className="font-semibold text-sm">Item {index + 1}</span>
                     {lines.length > 1 && (
                       <Button
                         variant="ghost"
@@ -307,7 +374,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2 md:col-span-2">
-                      <Label>Product</Label>
+                      <Label>Select Product/Service</Label>
                       <Select
                         value={line.product_id || ''}
                         onValueChange={(value) => handleProductSelect(index, value)}
@@ -327,15 +394,17 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <Label>{t('invoiceForm.description')}</Label>
-                      <Input
+                      <Label>Description *</Label>
+                      <Textarea
                         value={line.description || ''}
                         onChange={(e) => handleLineChange(index, 'description', e.target.value)}
+                        placeholder="Service or product description"
+                        rows={2}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>{t('invoiceForm.quantity')}</Label>
+                      <Label>Amount</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -345,7 +414,23 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>{t('invoiceForm.unitPrice')}</Label>
+                      <Label>Unit</Label>
+                      <Select defaultValue="piece">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="piece">Piece (Stuks)</SelectItem>
+                          <SelectItem value="hour">Hour (Uur)</SelectItem>
+                          <SelectItem value="day">Day (Dag)</SelectItem>
+                          <SelectItem value="month">Month (Maand)</SelectItem>
+                          <SelectItem value="service">Service (Dienst)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Price excl. VAT</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -355,30 +440,67 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>{t('invoiceForm.vatRate')}</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={reverseCharge ? 0 : (line.vat_rate || 0)}
-                        onChange={(e) => handleLineChange(index, 'vat_rate', parseFloat(e.target.value) || 0)}
+                      <Label>VAT rate</Label>
+                      <Select
+                        value={(reverseCharge ? 0 : (line.vat_rate || 0)).toString()}
+                        onValueChange={(v) => handleLineChange(index, 'vat_rate', parseFloat(v))}
                         disabled={reverseCharge}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DUTCH_VAT_RATES.map((rate) => (
+                            <SelectItem key={rate.value} value={rate.value.toString()}>
+                              {rate.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>{t('invoiceForm.gross')}</Label>
-                      <Input
-                        value={formatCurrency(
-                          calculateLineTotals(
-                            line.quantity || 0,
-                            line.unit_price || 0,
-                            reverseCharge ? 0 : (line.vat_rate || 0)
-                          ).lineGross,
-                          i18n.language
-                        )}
-                        disabled
-                        className="font-mono"
-                      />
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Total excl. VAT</Label>
+                          <div className="font-mono font-semibold text-sm mt-1">
+                            {formatCurrency(
+                              calculateLineTotals(
+                                line.quantity || 0,
+                                line.unit_price || 0,
+                                0
+                              ).lineNet,
+                              i18n.language
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">VAT</Label>
+                          <div className="font-mono font-semibold text-sm mt-1">
+                            {formatCurrency(
+                              calculateLineTotals(
+                                line.quantity || 0,
+                                line.unit_price || 0,
+                                reverseCharge ? 0 : (line.vat_rate || 0)
+                              ).lineVat,
+                              i18n.language
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Total incl. VAT</Label>
+                          <div className="font-mono font-bold text-base mt-1">
+                            {formatCurrency(
+                              calculateLineTotals(
+                                line.quantity || 0,
+                                line.unit_price || 0,
+                                reverseCharge ? 0 : (line.vat_rate || 0)
+                              ).lineGross,
+                              i18n.language
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -389,21 +511,46 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('invoiceForm.summary')}</CardTitle>
+            <CardTitle>Notes (Optional)</CardTitle>
+            <CardDescription>Additional information for the client</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-w-md ml-auto">
-              <div className="flex justify-between">
-                <span>{t('invoiceForm.totalNet')}:</span>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any additional notes, payment instructions, or terms..."
+              rows={4}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('invoiceForm.summary')}</CardTitle>
+            <CardDescription>Invoice totals</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-w-md ml-auto">
+              <div className="flex justify-between text-base">
+                <span className="text-muted-foreground">Total excl. VAT:</span>
                 <span className="font-mono font-semibold">{formatCurrency(totals.totalNet, i18n.language)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('invoiceForm.totalVat')}:</span>
+              <div className="flex justify-between text-base">
+                <span className="text-muted-foreground">Total VAT:</span>
                 <span className="font-mono font-semibold">{formatCurrency(totals.totalVat, i18n.language)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t-2 border-primary">
-                <span className="text-lg font-bold">{t('invoiceForm.totalGross')}:</span>
-                <span className="text-lg font-mono font-bold">{formatCurrency(totals.totalGross, i18n.language)}</span>
+              {reverseCharge && (
+                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                  Reverse charge applies - VAT will be handled by the client
+                </div>
+              )}
+              <div className="flex justify-between pt-3 border-t-2 border-primary">
+                <span className="text-xl font-bold">Total incl. VAT:</span>
+                <span className="text-xl font-mono font-bold text-primary">{formatCurrency(totals.totalGross, i18n.language)}</span>
+              </div>
+              <div className="text-xs text-muted-foreground text-right">
+                Payment term: {paymentTermDays} days | Currency: {currency}
               </div>
             </div>
           </CardContent>
@@ -413,7 +560,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
           <Button variant="outline" onClick={() => onNavigate('invoices')}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSaveInvoice} size="lg">
+          <Button onClick={handleSaveInvoice} size="lg" className="min-w-40">
             {t('invoiceForm.save')}
           </Button>
         </div>

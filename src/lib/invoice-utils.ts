@@ -38,6 +38,24 @@ export function formatDate(date: string, locale: string = 'nl-NL'): string {
   }).format(new Date(date));
 }
 
+export function getISOWeekNumber(date: string | Date): number {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return weekNo;
+}
+
+export function getInvoiceNumberBreakdown(issueDate: string) {
+  const date = new Date(issueDate);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const week = getISOWeekNumber(date);
+  
+  return { year, month, week };
+}
+
 export function addDays(date: string, days: number): string {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
