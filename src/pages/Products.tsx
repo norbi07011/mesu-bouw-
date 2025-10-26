@@ -194,15 +194,17 @@ export default function Products() {
                 <Label htmlFor="code">{t('products.code')}</Label>
                 <Input
                   id="code"
+                  placeholder="PROD-001"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">{t('products.name')}</Label>
+                <Label htmlFor="name">{t('products.name')} *</Label>
                 <Input
                   id="name"
+                  placeholder="Rioolreiniging"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -213,6 +215,7 @@ export default function Products() {
               <Label htmlFor="description">{t('products.description')}</Label>
               <Input
                 id="description"
+                placeholder="Professionele rioolreiniging incl. materiaal"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
@@ -220,22 +223,24 @@ export default function Products() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="unit_price">{t('products.unitPrice')}</Label>
+                <Label htmlFor="unit_price">{t('products.unitPrice')} (EUR) *</Label>
                 <Input
                   id="unit_price"
                   type="number"
                   step="0.01"
+                  placeholder="1500.00"
                   value={formData.unit_price}
                   onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vat_rate">{t('products.vatRate')}</Label>
+                <Label htmlFor="vat_rate">{t('products.vatRate')} (%) *</Label>
                 <Input
                   id="vat_rate"
                   type="number"
                   step="0.01"
+                  placeholder="21"
                   value={formData.vat_rate}
                   onChange={(e) => setFormData({ ...formData, vat_rate: parseFloat(e.target.value) || 0 })}
                 />

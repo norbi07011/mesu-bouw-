@@ -214,9 +214,16 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
       lines: invoiceLines,
     };
 
-    setInvoices((prev) => [...(prev || []), newInvoice]);
+    setInvoices((currentInvoices) => {
+      const updated = [...(currentInvoices || []), newInvoice];
+      return updated;
+    });
+    
     toast.success(`Invoice ${number} created`);
-    onNavigate('invoices');
+    
+    setTimeout(() => {
+      onNavigate('invoices');
+    }, 100);
   };
 
   return (
@@ -243,13 +250,13 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Invoice Details</CardTitle>
-            <CardDescription>Client and date information</CardDescription>
+            <CardTitle>Factuurgegevens / Invoice Details</CardTitle>
+            <CardDescription>Klant- en datuminformatie / Client and date information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client">{t('invoiceForm.selectClient')} *</Label>
+                <Label htmlFor="client">{t('invoiceForm.selectClient')} (Factuur voor / Invoice for) *</Label>
                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                   <SelectTrigger id="client">
                     <SelectValue placeholder={t('invoiceForm.selectClient')} />
@@ -265,7 +272,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="issueDate">{t('invoiceForm.issueDate')} *</Label>
+                <Label htmlFor="issueDate">{t('invoiceForm.issueDate')} (Factuurdatum) *</Label>
                 <Input
                   id="issueDate"
                   type="date"
@@ -275,7 +282,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="paymentTerm">Payment term (days) *</Label>
+                <Label htmlFor="paymentTerm">Betalingstermijn / Payment term (dagen) *</Label>
                 <Select 
                   value={paymentTermDays.toString()} 
                   onValueChange={(v) => setPaymentTermDays(parseInt(v))}
@@ -284,16 +291,16 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days (Standard NL)</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="60">60 days</SelectItem>
+                    <SelectItem value="7">7 dagen</SelectItem>
+                    <SelectItem value="14">14 dagen (Standaard NL)</SelectItem>
+                    <SelectItem value="30">30 dagen</SelectItem>
+                    <SelectItem value="60">60 dagen</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dueDate">{t('invoiceForm.dueDate')}</Label>
+                <Label htmlFor="dueDate">{t('invoiceForm.dueDate')} (Vervaldatum)</Label>
                 <Input 
                   id="dueDate" 
                   type="date" 
@@ -304,21 +311,21 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
+                <Label htmlFor="language">Taal / Language</Label>
                 <Select value={language} onValueChange={setLanguage}>
                   <SelectTrigger id="language">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="nl">Dutch (Nederlands)</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="pl">Polish (Polski)</SelectItem>
+                    <SelectItem value="nl">Nederlands / Dutch (NL)</SelectItem>
+                    <SelectItem value="en">English (EN)</SelectItem>
+                    <SelectItem value="pl">Polski / Polish (PL)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">Valuta / Currency</Label>
                 <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger id="currency">
                     <SelectValue />
@@ -337,7 +344,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                 onCheckedChange={(checked) => setReverseCharge(checked as boolean)}
               />
               <Label htmlFor="reverseCharge" className="font-normal">
-                {t('invoiceForm.reverseCharge')} (Reverse charge - 0% VAT for EU B2B)
+                {t('invoiceForm.reverseCharge')} - Verleggingsregeling (0% BTW voor EU B2B)
               </Label>
             </div>
           </CardContent>
@@ -347,8 +354,8 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>{t('invoiceForm.lines')}</CardTitle>
-                <CardDescription>Products, services and line items</CardDescription>
+                <CardTitle>{t('invoiceForm.lines')} / Factuurregels</CardTitle>
+                <CardDescription>Producten, diensten en factuurregel items / Products, services and line items</CardDescription>
               </div>
               <Button onClick={handleAddLine} size="sm">
                 <Plus className="mr-2" />
@@ -375,7 +382,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2 md:col-span-2">
-                      <Label>Select Product/Service</Label>
+                      <Label>Product / Dienst selecteren</Label>
                       <Select
                         value={line.product_id || ''}
                         onValueChange={(value) => handleProductSelect(index, value)}
@@ -384,7 +391,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                           <SelectValue placeholder={t('invoiceForm.selectProduct')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ad-hoc">{t('invoiceForm.adHoc')}</SelectItem>
+                          <SelectItem value="ad-hoc">{t('invoiceForm.adHoc')} (Aangepast)</SelectItem>
                           {(products || []).map((product) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.name} - {formatCurrency(product.unit_price, i18n.language)}
@@ -395,53 +402,56 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <Label>Description *</Label>
+                      <Label>Omschrijving / Description *</Label>
                       <Textarea
                         value={line.description || ''}
                         onChange={(e) => handleLineChange(index, 'description', e.target.value)}
-                        placeholder="Service or product description"
+                        placeholder="Week 39 - Rioolreinigingsdiensten, inspectie en ontstopping"
                         rows={2}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Amount</Label>
+                      <Label>Aantal / Amount *</Label>
                       <Input
                         type="number"
                         step="0.01"
+                        placeholder="1.00"
                         value={line.quantity || 0}
                         onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Unit</Label>
+                      <Label>Eenheid / Unit</Label>
                       <Select defaultValue="piece">
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="piece">Piece (Stuks)</SelectItem>
-                          <SelectItem value="hour">Hour (Uur)</SelectItem>
-                          <SelectItem value="day">Day (Dag)</SelectItem>
-                          <SelectItem value="month">Month (Maand)</SelectItem>
-                          <SelectItem value="service">Service (Dienst)</SelectItem>
+                          <SelectItem value="piece">Stuks / Piece</SelectItem>
+                          <SelectItem value="hour">Uur / Hour</SelectItem>
+                          <SelectItem value="day">Dag / Day</SelectItem>
+                          <SelectItem value="week">Week / Week</SelectItem>
+                          <SelectItem value="month">Maand / Month</SelectItem>
+                          <SelectItem value="service">Dienst / Service</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Price excl. VAT</Label>
+                      <Label>Prijs p.e. / Price excl. VAT (EUR) *</Label>
                       <Input
                         type="number"
                         step="0.01"
+                        placeholder="1500.00"
                         value={line.unit_price || 0}
                         onChange={(e) => handleLineChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>VAT rate</Label>
+                      <Label>BTW-tarief / VAT rate (%)</Label>
                       <Select
                         value={(reverseCharge ? 0 : (line.vat_rate || 0)).toString()}
                         onValueChange={(v) => handleLineChange(index, 'vat_rate', parseFloat(v))}
@@ -463,7 +473,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                     <div className="space-y-2 md:col-span-2">
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <Label className="text-xs text-muted-foreground">Total excl. VAT</Label>
+                          <Label className="text-xs text-muted-foreground">Totaal excl. BTW</Label>
                           <div className="font-mono font-semibold text-sm mt-1">
                             {formatCurrency(
                               calculateLineTotals(
@@ -476,7 +486,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                           </div>
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">VAT</Label>
+                          <Label className="text-xs text-muted-foreground">BTW / VAT</Label>
                           <div className="font-mono font-semibold text-sm mt-1">
                             {formatCurrency(
                               calculateLineTotals(
@@ -489,7 +499,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
                           </div>
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Total incl. VAT</Label>
+                          <Label className="text-xs text-muted-foreground">Totaal incl. BTW</Label>
                           <div className="font-mono font-bold text-base mt-1">
                             {formatCurrency(
                               calculateLineTotals(
@@ -512,15 +522,15 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Notes (Optional)</CardTitle>
-            <CardDescription>Additional information for the client</CardDescription>
+            <CardTitle>Notities / Notes (Optioneel)</CardTitle>
+            <CardDescription>Aanvullende informatie voor de klant / Additional information for the client</CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any additional notes, payment instructions, or terms..."
+              placeholder="Opmerkingen / Remarks:&#10;Uw betaling dient uiterlijk 14 dagen na factuurdatum te zijn ontvangen op rekeningnummer NL25INGB0109126122 onder vermelding van het factuurnummer.&#10;&#10;Betaal met een bank-app of betaalverzoek de QR-code.&#10;Scan met een bank-app of betaalverzoek de QR-code."
               rows={4}
             />
           </CardContent>
@@ -528,30 +538,30 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('invoiceForm.summary')}</CardTitle>
-            <CardDescription>Invoice totals</CardDescription>
+            <CardTitle>{t('invoiceForm.summary')} / Samenvatting</CardTitle>
+            <CardDescription>Factuurtotalen / Invoice totals</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-w-md ml-auto">
               <div className="flex justify-between text-base">
-                <span className="text-muted-foreground">Total excl. VAT:</span>
+                <span className="text-muted-foreground">Totaal excl. BTW / Total excl. VAT:</span>
                 <span className="font-mono font-semibold">{formatCurrency(totals.totalNet, i18n.language)}</span>
               </div>
               <div className="flex justify-between text-base">
-                <span className="text-muted-foreground">Total VAT:</span>
+                <span className="text-muted-foreground">Totaal BTW / Total VAT:</span>
                 <span className="font-mono font-semibold">{formatCurrency(totals.totalVat, i18n.language)}</span>
               </div>
               {reverseCharge && (
                 <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                  Reverse charge applies - VAT will be handled by the client
+                  Verleggingsregeling van toepassing - BTW wordt door de klant afgedragen / Reverse charge applies - VAT will be handled by the client
                 </div>
               )}
               <div className="flex justify-between pt-3 border-t-2 border-primary">
-                <span className="text-xl font-bold">Total incl. VAT:</span>
+                <span className="text-xl font-bold">Te betalen / Total incl. VAT:</span>
                 <span className="text-xl font-mono font-bold text-primary">{formatCurrency(totals.totalGross, i18n.language)}</span>
               </div>
               <div className="text-xs text-muted-foreground text-right">
-                Payment term: {paymentTermDays} days | Currency: {currency}
+                Betalingstermijn / Payment term: {paymentTermDays} dagen | Valuta / Currency: {currency}
               </div>
             </div>
           </CardContent>

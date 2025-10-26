@@ -190,18 +190,20 @@ export default function Clients() {
 
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">{t('clients.name')}</Label>
+              <Label htmlFor="name">{t('clients.name')} *</Label>
               <Input
                 id="name"
+                placeholder="Kogbox Waterinstallaties"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">{t('clients.address')}</Label>
+              <Label htmlFor="address">{t('clients.address')} *</Label>
               <Input
                 id="address"
+                placeholder="Straatweg 20, 3131 CR Vlaardiingen, Nederland"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
@@ -213,6 +215,7 @@ export default function Clients() {
                 <Input
                   id="email"
                   type="email"
+                  placeholder="info@kogbox.nl"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -222,6 +225,7 @@ export default function Clients() {
                 <Label htmlFor="phone">{t('clients.phone')}</Label>
                 <Input
                   id="phone"
+                  placeholder="+31 6 12345678"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
@@ -232,6 +236,7 @@ export default function Clients() {
               <Label htmlFor="vat_number">{t('clients.vatNumber')}</Label>
               <Input
                 id="vat_number"
+                placeholder="NL003314048B23"
                 value={formData.vat_number}
                 onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
               />
@@ -241,6 +246,7 @@ export default function Clients() {
               <Label htmlFor="notes">{t('clients.notes')}</Label>
               <Input
                 id="notes"
+                placeholder="Aanvullende informatie over de klant"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />

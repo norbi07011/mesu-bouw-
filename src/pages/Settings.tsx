@@ -183,63 +183,70 @@ export default function Settings() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t('settings.name')}</Label>
+                  <Label htmlFor="name">{t('settings.name')} *</Label>
                   <Input
                     id="name"
+                    placeholder="NORBS SERVICE"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="kvk">{t('settings.kvk')}</Label>
+                  <Label htmlFor="kvk">{t('settings.kvk')} (KvK-nummer)</Label>
                   <Input
                     id="kvk"
+                    placeholder="94061629"
                     value={formData.kvk}
                     onChange={(e) => setFormData({ ...formData, kvk: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="address">{t('settings.address')}</Label>
+                  <Label htmlFor="address">{t('settings.address')} *</Label>
                   <Input
                     id="address"
+                    placeholder="Zuiderparklaaan 65, 2574HS 's-Gravenhage, Nederland"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="vatNumber">{t('settings.vatNumber')}</Label>
+                  <Label htmlFor="vatNumber">{t('settings.vatNumber')} (BTW-ID)</Label>
                   <Input
                     id="vatNumber"
+                    placeholder="NL005061645B57"
                     value={formData.vat_number}
                     onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="eori">{t('settings.eori')}</Label>
+                  <Label htmlFor="eori">{t('settings.eori')} (EORI-nummer)</Label>
                   <Input
                     id="eori"
+                    placeholder="NL005061645B57"
                     value={formData.eori}
                     onChange={(e) => setFormData({ ...formData, eori: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="iban">{t('settings.iban')}</Label>
+                  <Label htmlFor="iban">{t('settings.iban')} *</Label>
                   <Input
                     id="iban"
+                    placeholder="NL25INGB0109126122"
                     value={formData.iban}
                     onChange={(e) => setFormData({ ...formData, iban: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bic">{t('settings.bic')}</Label>
+                  <Label htmlFor="bic">{t('settings.bic')} (SWIFT)</Label>
                   <Input
                     id="bic"
+                    placeholder="INGBNL2A"
                     value={formData.bic}
                     onChange={(e) => setFormData({ ...formData, bic: e.target.value })}
                   />
@@ -249,16 +256,18 @@ export default function Settings() {
                   <Label htmlFor="bankName">{t('settings.bankName')}</Label>
                   <Input
                     id="bankName"
+                    placeholder="ING Bank"
                     value={formData.bank_name}
                     onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t('settings.email')}</Label>
+                  <Label htmlFor="email">{t('settings.email')} *</Label>
                   <Input
                     id="email"
                     type="email"
+                    placeholder="servicedesk@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
@@ -269,33 +278,37 @@ export default function Settings() {
                   <Input
                     id="emailAlt"
                     type="email"
+                    placeholder="info@norbsservice.nl"
                     value={formData.email_alt}
                     onChange={(e) => setFormData({ ...formData, email_alt: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">{t('settings.phone')}</Label>
+                  <Label htmlFor="phone">{t('settings.phone')} (Tel.)</Label>
                   <Input
                     id="phone"
+                    placeholder="+31 70 1234567"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phoneMobile">{t('settings.phoneMobile')}</Label>
+                  <Label htmlFor="phoneMobile">{t('settings.phoneMobile')} (Mobiel)</Label>
                   <Input
                     id="phoneMobile"
+                    placeholder="+31 6 12345678"
                     value={formData.phone_mobile}
                     onChange={(e) => setFormData({ ...formData, phone_mobile: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phoneWhatsapp">{t('settings.phoneWhatsapp')}</Label>
+                  <Label htmlFor="phoneWhatsapp">{t('settings.phoneWhatsapp')} (WhatsApp)</Label>
                   <Input
                     id="phoneWhatsapp"
+                    placeholder="+31 6 87654321"
                     value={formData.phone_whatsapp}
                     onChange={(e) => setFormData({ ...formData, phone_whatsapp: e.target.value })}
                   />
@@ -305,27 +318,30 @@ export default function Settings() {
                   <Label htmlFor="website">{t('settings.website')}</Label>
                   <Input
                     id="website"
+                    placeholder="www.norbsservice.nl"
                     value={formData.website}
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="defaultPaymentTerm">{t('settings.defaultPaymentTerm')}</Label>
+                  <Label htmlFor="defaultPaymentTerm">{t('settings.defaultPaymentTerm')} (dagen)</Label>
                   <Input
                     id="defaultPaymentTerm"
                     type="number"
+                    placeholder="14"
                     value={formData.default_payment_term_days}
                     onChange={(e) => setFormData({ ...formData, default_payment_term_days: parseInt(e.target.value) })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="defaultVatRate">{t('settings.defaultVatRate')}</Label>
+                  <Label htmlFor="defaultVatRate">{t('settings.defaultVatRate')} (%)</Label>
                   <Input
                     id="defaultVatRate"
                     type="number"
                     step="0.01"
+                    placeholder="21"
                     value={formData.default_vat_rate}
                     onChange={(e) => setFormData({ ...formData, default_vat_rate: parseFloat(e.target.value) })}
                   />
