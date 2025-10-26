@@ -3,6 +3,26 @@ import { Company, Invoice, Client, InvoiceLine } from '@/types';
 import { formatCurrency, formatDate, getISOWeekNumber } from '@/lib/invoice-utils';
 import { getTemplateById } from '@/lib/invoice-templates';
 
+async function imageUrlToBase64(url: string): Promise<string> {
+  try {
+    if (url.startsWith('data:')) {
+      return url;
+    }
+    
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Failed to convert image to base64:', error);
+    return '';
+  }
+}
+
 export async function generateInvoicePDF(
   invoice: Invoice,
   company: Company,
@@ -11,37 +31,50 @@ export async function generateInvoicePDF(
   language: string,
   templateId: string = 'classic'
 ): Promise<void> {
-  const template = getTemplateById(templateId);
-  const qrDataUrl = await QRCode.toDataURL(invoice.payment_qr_payload, {
-    width: 200,
-    margin: 1,
-  });
+  try {
+    const template = getTemplateById(templateId);
+    
+    const qrDataUrl = await QRCode.toDataURL(invoice.payment_qr_payload, {
+      width: 200,
+      margin: 1,
+    });
 
-  const weekNumber = getISOWeekNumber(invoice.issue_date).toString();
-  const t = getTranslations(language);
-
-  const html = generateTemplateHTML(invoice, company, client, lines, template, qrDataUrl, weekNumber, t, language);
-
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${invoice.invoice_number}.html`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  setTimeout(() => {
-    const printWindow = window.open(url, '_blank');
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-      };
+    let logoDataUrl = '';
+    if (template.config.showLogo && company.logo_url) {
+      logoDataUrl = await imageUrlToBase64(company.logo_url);
     }
-  }, 100);
-  
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    const weekNumber = getISOWeekNumber(invoice.issue_date).toString();
+    const t = getTranslations(language);
+
+    const html = generateTemplateHTML(invoice, company, client, lines, template, qrDataUrl, weekNumber, t, language, logoDataUrl);
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${invoice.invoice_number}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => {
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
+      }
+    }, 100);
+    
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw error;
+  }
 }
 
 function generateTemplateHTML(
@@ -53,7 +86,8 @@ function generateTemplateHTML(
   qrCodeUrl: string,
   weekNumber: string,
   t: any,
-  language: string
+  language: string,
+  logoDataUrl: string
 ): string {
   const primaryColor = template.config.primaryColor;
   const accentColor = template.config.accentColor;
@@ -69,25 +103,11 @@ function generateTemplateHTML(
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4; margin: 12mm; }
-    @media print {
-      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    }
-    body {
-      font-family: '${template.config.fontFamily}', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 10pt;
-      line-height: 1.5;
-      color: #1a1a1a;
-      padding: 20px;
-      max-width: 210mm;
-      margin: 0 auto;
-    }
     ${getTemplateStyles(template)}
   </style>
 </head>
 <body>
-  ${getTemplateBody(invoice, company, client, lines, template, qrCodeUrl, weekNumber, t, language)}
+  ${getTemplateBody(invoice, company, client, lines, template, qrCodeUrl, weekNumber, t, language, logoDataUrl)}
 </body>
 </html>
   `;
@@ -98,9 +118,24 @@ function getTemplateStyles(template: any): string {
   const accentColor = template.config.accentColor;
   
   return `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      img { max-width: 100%; height: auto; }
+    }
+    body {
+      font-family: '${template.config.fontFamily}', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #1a1a1a;
+      padding: 20px;
+      max-width: 210mm;
+      margin: 0 auto;
+    }
     .container { max-width: 100%; }
     .header { margin-bottom: 30px; }
-    .logo { max-width: 80px; max-height: 80px; object-fit: contain; }
+    .logo { max-width: 80px; max-height: 80px; object-fit: contain; display: block; margin-bottom: 10px; }
     .company-name { font-size: 20pt; font-weight: 700; color: ${primaryColor}; margin-bottom: 8px; }
     .invoice-title { font-size: 24pt; font-weight: 700; color: ${accentColor}; }
     .invoice-number { font-size: 16pt; font-weight: 600; font-family: monospace; margin-top: 4px; }
@@ -122,7 +157,7 @@ function getTemplateStyles(template: any): string {
     .payment-details { flex: 1; }
     .payment-info { line-height: 1.8; font-size: 9pt; }
     .qr-section { text-align: center; }
-    .qr-image { width: 140px; height: 140px; }
+    .qr-image { width: 140px; height: 140px; display: block; margin: 0 auto; }
     .qr-label { font-size: 8pt; font-weight: 600; margin-top: 8px; }
     .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 7pt; color: #666; }
     .note { margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; font-size: 9pt; }
@@ -139,23 +174,34 @@ function getTemplateBody(
   qrCodeUrl: string,
   weekNumber: string,
   t: any,
-  language: string
+  language: string,
+  logoDataUrl: string
 ): string {
+  const escapeHtml = (text: string | undefined | null): string => {
+    if (!text) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   return `
     <div class="container">
       <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 2px solid ${template.config.primaryColor};">
         <div>
-          ${template.config.showLogo && company.logo_url ? `<img src="${company.logo_url}" alt="Logo" class="logo">` : ''}
-          <div class="company-name">${company.name}</div>
+          ${template.config.showLogo && logoDataUrl ? `<img src="${logoDataUrl}" alt="Company Logo" class="logo" style="max-width: 80px; max-height: 80px; object-fit: contain; margin-bottom: 10px;">` : ''}
+          <div class="company-name">${escapeHtml(company.name)}</div>
           <div style="font-size: 9pt; color: #666; line-height: 1.6;">
-            ${company.address}<br>
-            KVK: ${company.kvk} | BTW: ${company.vat_number}<br>
-            ${company.email}
+            ${escapeHtml(company.address)}<br>
+            KVK: ${escapeHtml(company.kvk)} | BTW: ${escapeHtml(company.vat_number)}<br>
+            ${escapeHtml(company.email)}
           </div>
         </div>
         <div style="text-align: right;">
           <div class="invoice-title">${t.invoice}</div>
-          <div class="invoice-number">${invoice.invoice_number}</div>
+          <div class="invoice-number">${escapeHtml(invoice.invoice_number)}</div>
           ${template.config.showWeekNumber ? `<div class="week-number">Week ${weekNumber}</div>` : ''}
         </div>
       </div>
@@ -164,8 +210,8 @@ function getTemplateBody(
         <div>
           <div class="section-title">${t.buyer}</div>
           <div class="party-content">
-            <strong>${client.name}</strong><br>
-            ${client.address}${client.vat_number ? `<br>BTW: ${client.vat_number}` : ''}
+            <strong>${escapeHtml(client.name)}</strong><br>
+            ${escapeHtml(client.address)}${client.vat_number ? `<br>BTW: ${escapeHtml(client.vat_number)}` : ''}
           </div>
         </div>
         <div>
@@ -173,7 +219,7 @@ function getTemplateBody(
           <div class="party-content">
             <strong>${t.issueDate}:</strong> ${formatDate(invoice.issue_date, language)}<br>
             <strong>${t.dueDate}:</strong> ${formatDate(invoice.due_date, language)}<br>
-            <strong>${t.reference}:</strong> ${invoice.payment_reference}
+            <strong>${t.reference}:</strong> ${escapeHtml(invoice.payment_reference)}
           </div>
         </div>
       </div>
@@ -193,7 +239,7 @@ function getTemplateBody(
           ${lines.map((line, index) => `
             <tr>
               <td>${index + 1}</td>
-              <td>${line.description}</td>
+              <td>${escapeHtml(line.description)}</td>
               <td class="right mono">${line.quantity}</td>
               <td class="right mono">${formatCurrency(line.unit_price, language)}</td>
               <td class="right mono">${line.vat_rate}%</td>
@@ -218,7 +264,7 @@ function getTemplateBody(
         </div>
       </div>
 
-      ${invoice.vat_note ? `<div class="note">${invoice.vat_note}</div>` : ''}
+      ${invoice.vat_note ? `<div class="note">${escapeHtml(invoice.vat_note)}</div>` : ''}
 
       ${template.config.showBankDetails || template.config.showQRCode ? `
         <div class="payment-section">
@@ -226,16 +272,16 @@ function getTemplateBody(
             <div class="payment-details">
               <div class="section-title">${t.paymentDetails}</div>
               <div class="payment-info">
-                IBAN: <span class="mono">${company.iban}</span><br>
-                BIC: <span class="mono">${company.bic}</span><br>
+                IBAN: <span class="mono">${escapeHtml(company.iban)}</span><br>
+                BIC: <span class="mono">${escapeHtml(company.bic)}</span><br>
                 ${t.amount}: <span class="mono"><strong>${formatCurrency(invoice.total_gross, language)}</strong></span><br>
-                ${t.reference}: <span class="mono">${invoice.invoice_number}</span>
+                ${t.reference}: <span class="mono">${escapeHtml(invoice.invoice_number)}</span>
               </div>
             </div>
           ` : ''}
-          ${template.config.showQRCode ? `
+          ${template.config.showQRCode && qrCodeUrl ? `
             <div class="qr-section">
-              <img src="${qrCodeUrl}" alt="QR Code" class="qr-image">
+              <img src="${qrCodeUrl}" alt="Payment QR Code" class="qr-image" style="width: 140px; height: 140px;">
               <div class="qr-label">${t.scanToPay}</div>
             </div>
           ` : ''}
@@ -243,7 +289,7 @@ function getTemplateBody(
       ` : ''}
 
       <div class="footer">
-        ${company.name} · KVK ${company.kvk} · BTW ${company.vat_number} · IBAN ${company.iban}
+        ${escapeHtml(company.name)} · KVK ${escapeHtml(company.kvk)} · BTW ${escapeHtml(company.vat_number)} · IBAN ${escapeHtml(company.iban)}
       </div>
     </div>
   `;
