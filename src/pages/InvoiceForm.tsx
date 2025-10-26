@@ -153,6 +153,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
     });
 
     const now = new Date().toISOString();
+    const invoiceId = `invoice_${Date.now()}`;
 
     const invoiceLines: InvoiceLine[] = lines
       .filter(l => l.description)
@@ -165,7 +166,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
         );
         return {
           id: `line_${Date.now()}_${i}`,
-          invoice_id: '',
+          invoice_id: invoiceId,
           product_id: l.product_id,
           description: l.description!,
           quantity: l.quantity!,
@@ -193,7 +194,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
       : '';
 
     const newInvoice: Invoice = {
-      id: `invoice_${Date.now()}`,
+      id: invoiceId,
       invoice_number: number,
       company_id: company.id,
       client_id: selectedClientId,
@@ -210,7 +211,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
       notes,
       created_at: now,
       updated_at: now,
-      lines: invoiceLines.map(l => ({ ...l, invoice_id: `invoice_${Date.now()}` })),
+      lines: invoiceLines,
     };
 
     setInvoices((prev) => [...(prev || []), newInvoice]);
