@@ -51,11 +51,11 @@ A professional, offline-capable invoice management system for NORBS SERVICE with
 - **Success criteria**: PDF contains all invoice data with company logo, Dutch standards (week number, BTW details), QR code scans correctly with SEPA payment info, VAT breakdown shows correct Dutch rates; All export formats contain complete invoice data; **Selected template applies to all generated PDFs with consistent styling**
 
 ### Financial Reports
-- **Functionality**: Generate annual/monthly reports with totals, charts, top clients
-- **Purpose**: Business intelligence and tax preparation
-- **Trigger**: Reports page with date range selection
-- **Progression**: Select period → Generate report → View charts/tables → Export CSV
-- **Success criteria**: Accurate totals matching invoice data, charts render correctly
+- **Functionality**: Comprehensive financial analysis with Dutch ZZP tax calculations, multiple chart types (bar, line, area, pie, composed), VAT breakdown by rate, quarterly analysis, cumulative revenue tracking, tax threshold monitoring, income tax estimation with deductions (Zelfstandigenaftrek, MKB Winstvrijstelling), client revenue distribution
+- **Purpose**: Complete business intelligence, Dutch tax compliance analysis, and professional tax preparation for ZZP freelancers
+- **Trigger**: Reports page with year selection and tabbed navigation
+- **Progression**: Select year → Choose analysis tab (Overview/Revenue/Tax/VAT/Clients) → View comprehensive charts and metrics → Analyze Dutch tax thresholds → Review VAT breakdown → Examine client performance → Export CSV data
+- **Success criteria**: Accurate totals matching invoice data; All chart types render correctly with complete data series (bars, lines, areas, cumulative trends); Dutch tax thresholds correctly displayed with progress indicators; Income tax estimated using 2024 rates (36.97%/49.5%); VAT breakdown shows all rates (0%, 9%, 21%) with detailed analysis; Client rankings accurate; Tax deductions (€3,750 Zelfstandigenaftrek, 14% MKB Winstvrijstelling) calculated correctly; Warnings displayed for threshold crossings (€25,000 KOR, €75,518 VAR)
 
 ### Multi-language Support
 - **Functionality**: Switch UI and invoice language between PL/NL/EN
