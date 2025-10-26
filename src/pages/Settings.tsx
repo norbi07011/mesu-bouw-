@@ -10,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, Image as ImageIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import { Company, Language } from '@/types';
+import { Company, Language, Invoice, Client } from '@/types';
+import { InvoiceTemplateSelector } from '@/components/InvoiceTemplateSelector';
+import { InvoiceTemplatePreview } from '@/components/InvoiceTemplatePreview';
+import { getTemplateById } from '@/lib/invoice-templates';
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
@@ -41,6 +44,45 @@ export default function Settings() {
 
   const [formData, setFormData] = useState(company!);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useKV<string>('invoice_template', 'classic');
+
+  const sampleInvoice: Partial<Invoice> = {
+    invoice_number: 'FV-2025-05-001',
+    issue_date: '2025-05-15',
+    due_date: '2025-05-29',
+    currency: 'EUR',
+    total_net: 500,
+    total_vat: 105,
+    total_gross: 605,
+    payment_qr_payload: 'BCD\n001\n1\nSCT\nINGBNL2A\nNORBS SERVICE\nNL25INGB0109126122\nEUR605.00\nFV-2025-05-001\nInvoice FV-2025-05-001',
+    payment_reference: 'FV-2025-05-001',
+    notes: 'Thank you for your business!',
+    lines: [
+      {
+        id: '1',
+        invoice_id: 'sample',
+        description: 'Web Development Service',
+        quantity: 10,
+        unit_price: 50,
+        vat_rate: 21,
+        line_net: 500,
+        line_vat: 105,
+        line_gross: 605,
+      },
+    ],
+  };
+
+  const sampleClient: Client = {
+    id: '1',
+    name: 'Example Client B.V.',
+    address: 'Rotterdam, Netherlands',
+    vat_number: 'NL123456789B01',
+    email: 'client@example.com',
+    phone: '+31 10 123 4567',
+    notes: '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,6 +131,7 @@ export default function Settings() {
         <TabsList>
           <TabsTrigger value="company">{t('settings.company')}</TabsTrigger>
           <TabsTrigger value="preferences">{t('settings.preferences')}</TabsTrigger>
+          <TabsTrigger value="templates">Invoice Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company">
@@ -318,6 +361,46 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoice Templates</CardTitle>
+                <CardDescription>
+                  Choose a template style for your invoices. The selected template will be used for all PDF exports.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InvoiceTemplateSelector
+                  selectedTemplateId={selectedTemplateId || 'classic'}
+                  onSelect={(templateId) => {
+                    setSelectedTemplateId(templateId);
+                    toast.success('Template selected');
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Template Preview</CardTitle>
+                <CardDescription>
+                  Preview of how your invoices will look with the selected template
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center bg-muted/30 p-8 rounded-lg overflow-auto">
+                <InvoiceTemplatePreview
+                  invoice={sampleInvoice}
+                  client={sampleClient}
+                  company={company}
+                  template={getTemplateById(selectedTemplateId || 'classic')}
+                  scale={0.4}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

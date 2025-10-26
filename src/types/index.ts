@@ -106,3 +106,30 @@ export interface YearReport {
 }
 
 export type Language = 'pl' | 'nl' | 'en';
+
+export type InvoiceTemplateStyle = 'classic' | 'modern' | 'minimal' | 'professional' | 'creative';
+
+export interface InvoiceTemplate {
+  id: string;
+  name: string;
+  style: InvoiceTemplateStyle;
+  description: string;
+  thumbnail?: string;
+  config: {
+    primaryColor: string;
+    accentColor: string;
+    fontFamily: string;
+    headerStyle: 'compact' | 'spacious' | 'centered';
+    tableStyle: 'lined' | 'striped' | 'bordered' | 'minimal';
+    footerStyle: 'standard' | 'detailed' | 'compact';
+    showLogo: boolean;
+    showQRCode: boolean;
+    showBankDetails: boolean;
+    showWeekNumber: boolean;
+  };
+}
+
+export interface InvoiceSettings {
+  selectedTemplateId: string;
+  customTemplates: InvoiceTemplate[];
+}

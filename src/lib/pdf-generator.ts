@@ -1,321 +1,252 @@
 import QRCode from 'qrcode';
 import { Company, Invoice, Client, InvoiceLine } from '@/types';
-import { formatCurrency, formatDate, generateSEPAQRPayload } from '@/lib/invoice-utils';
+import { formatCurrency, formatDate, getISOWeekNumber } from '@/lib/invoice-utils';
+import { getTemplateById } from '@/lib/invoice-templates';
 
 export async function generateInvoicePDF(
   invoice: Invoice,
   company: Company,
   client: Client,
   lines: InvoiceLine[],
-  language: string
+  language: string,
+  templateId: string = 'classic'
 ): Promise<void> {
+  const template = getTemplateById(templateId);
   const qrDataUrl = await QRCode.toDataURL(invoice.payment_qr_payload, {
     width: 200,
     margin: 1,
   });
 
+  const weekNumber = getISOWeekNumber(invoice.issue_date).toString();
   const t = getTranslations(language);
 
-  const html = `
-<!DOCTYPE html>
-<html lang="${language}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${t.invoice} ${invoice.invoice_number}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4; margin: 15mm; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 10pt;
-      line-height: 1.5;
-      color: #000;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #000;
-    }
-    .company-info { 
-      flex: 1;
-      display: flex;
-      gap: 15px;
-      align-items: flex-start;
-    }
-    .company-logo {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      border-radius: 8px;
-    }
-    .company-details {
-      flex: 1;
-    }
-    .invoice-title {
-      font-size: 24pt;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-    .invoice-number {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14pt;
-      font-weight: 600;
-    }
-    .parties {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 30px;
-      gap: 40px;
-    }
-    .party {
-      flex: 1;
-    }
-    .party-title {
-      font-weight: 700;
-      font-size: 11pt;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      color: #666;
-    }
-    .party-content {
-      line-height: 1.6;
-    }
-    .dates {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      padding: 10px;
-      background: #f5f5f5;
-    }
-    .date-item {
-      font-size: 9pt;
-    }
-    .date-label {
-      font-weight: 600;
-      margin-right: 8px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    th {
-      background: #000;
-      color: #fff;
-      padding: 10px 8px;
-      text-align: left;
-      font-size: 9pt;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    th.right, td.right {
-      text-align: right;
-    }
-    td {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-      font-size: 9pt;
-    }
-    .mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .totals {
-      margin-left: auto;
-      width: 300px;
-      margin-bottom: 20px;
-    }
-    .total-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 12px;
-      border-bottom: 1px solid #ddd;
-    }
-    .total-row.final {
-      background: #000;
-      color: #fff;
-      font-weight: 700;
-      font-size: 12pt;
-      margin-top: 4px;
-    }
-    .payment-section {
-      display: flex;
-      gap: 30px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 2px solid #000;
-    }
-    .payment-details {
-      flex: 1;
-    }
-    .payment-title {
-      font-weight: 700;
-      font-size: 11pt;
-      margin-bottom: 10px;
-    }
-    .payment-info {
-      line-height: 1.8;
-      font-size: 9pt;
-    }
-    .qr-section {
-      text-align: center;
-    }
-    .qr-image {
-      width: 160px;
-      height: 160px;
-      margin-bottom: 8px;
-    }
-    .qr-label {
-      font-size: 8pt;
-      font-weight: 600;
-    }
-    .footer {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid #ddd;
-      text-align: center;
-      font-size: 8pt;
-      color: #666;
-    }
-    .note {
-      margin-top: 20px;
-      padding: 12px;
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
-      font-size: 9pt;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="company-info">
-      ${company.logo_url ? `<img src="${company.logo_url}" alt="${company.name}" class="company-logo">` : ''}
-      <div class="company-details">
-        <div class="invoice-title">${t.invoice}</div>
-        <div class="invoice-number">${invoice.invoice_number}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="parties">
-    <div class="party">
-      <div class="party-title">${t.seller}</div>
-      <div class="party-content">
-        <strong>${company.name}</strong><br>
-        ${company.address}<br>
-        KVK: ${company.kvk}<br>
-        ${t.vatNumber}: ${company.vat_number}<br>
-        ${company.email}
-      </div>
-    </div>
-    <div class="party">
-      <div class="party-title">${t.buyer}</div>
-      <div class="party-content">
-        <strong>${client.name}</strong><br>
-        ${client.address}<br>
-        ${client.vat_number ? `${t.vatNumber}: ${client.vat_number}<br>` : ''}
-        ${client.email}
-      </div>
-    </div>
-  </div>
-
-  <div class="dates">
-    <div class="date-item">
-      <span class="date-label">${t.issueDate}:</span>
-      <span class="mono">${formatDate(invoice.issue_date, language)}</span>
-    </div>
-    <div class="date-item">
-      <span class="date-label">${t.dueDate}:</span>
-      <span class="mono">${formatDate(invoice.due_date, language)}</span>
-    </div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 40px;">${t.no}</th>
-        <th>${t.description}</th>
-        <th class="right" style="width: 70px;">${t.quantity}</th>
-        <th class="right" style="width: 90px;">${t.unitPrice}</th>
-        <th class="right" style="width: 60px;">${t.vatRate}</th>
-        <th class="right" style="width: 90px;">${t.net}</th>
-        <th class="right" style="width: 90px;">${t.vat}</th>
-        <th class="right" style="width: 100px;">${t.gross}</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${lines.map((line, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${line.description}</td>
-          <td class="right mono">${line.quantity}</td>
-          <td class="right mono">${formatCurrency(line.unit_price, language)}</td>
-          <td class="right mono">${line.vat_rate}%</td>
-          <td class="right mono">${formatCurrency(line.line_net, language)}</td>
-          <td class="right mono">${formatCurrency(line.line_vat, language)}</td>
-          <td class="right mono"><strong>${formatCurrency(line.line_gross, language)}</strong></td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <div class="total-row">
-      <span>${t.totalNet}:</span>
-      <span class="mono">${formatCurrency(invoice.total_net, language)}</span>
-    </div>
-    <div class="total-row">
-      <span>${t.totalVat}:</span>
-      <span class="mono">${formatCurrency(invoice.total_vat, language)}</span>
-    </div>
-    <div class="total-row final">
-      <span>${t.total}:</span>
-      <span class="mono">${formatCurrency(invoice.total_gross, language)}</span>
-    </div>
-  </div>
-
-  ${invoice.vat_note ? `
-    <div class="note">
-      ${invoice.vat_note}
-    </div>
-  ` : ''}
-
-  <div class="payment-section">
-    <div class="payment-details">
-      <div class="payment-title">${t.paymentDetails}</div>
-      <div class="payment-info">
-        <strong>${company.name}</strong><br>
-        IBAN: <span class="mono">${company.iban}</span><br>
-        BIC: <span class="mono">${company.bic}</span><br>
-        ${t.amount}: <span class="mono"><strong>${formatCurrency(invoice.total_gross, language)}</strong></span><br>
-        ${t.reference}: <span class="mono">${invoice.invoice_number}</span>
-      </div>
-    </div>
-    <div class="qr-section">
-      <img src="${qrDataUrl}" alt="QR Code" class="qr-image">
-      <div class="qr-label">${t.scanToPay}</div>
-    </div>
-  </div>
-
-  <div class="footer">
-    ${company.name} · KVK ${company.kvk} · BTW ${company.vat_number} · IBAN ${company.iban} · ${company.bic}
-  </div>
-</body>
-</html>
-  `;
+  const html = generateTemplateHTML(invoice, company, client, lines, template, qrDataUrl, weekNumber, t, language);
 
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
+  
   const link = document.createElement('a');
   link.href = url;
   link.download = `${invoice.invoice_number}.html`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  
+  setTimeout(() => {
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  }, 100);
+  
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function generateTemplateHTML(
+  invoice: Invoice,
+  company: Company,
+  client: Client,
+  lines: InvoiceLine[],
+  template: any,
+  qrCodeUrl: string,
+  weekNumber: string,
+  t: any,
+  language: string
+): string {
+  const primaryColor = template.config.primaryColor;
+  const accentColor = template.config.accentColor;
+  
+  return `
+<!DOCTYPE html>
+<html lang="${language}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${t.invoice} ${invoice.invoice_number}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    body {
+      font-family: '${template.config.fontFamily}', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #1a1a1a;
+      padding: 20px;
+      max-width: 210mm;
+      margin: 0 auto;
+    }
+    ${getTemplateStyles(template)}
+  </style>
+</head>
+<body>
+  ${getTemplateBody(invoice, company, client, lines, template, qrCodeUrl, weekNumber, t, language)}
+</body>
+</html>
+  `;
+}
+
+function getTemplateStyles(template: any): string {
+  const primaryColor = template.config.primaryColor;
+  const accentColor = template.config.accentColor;
+  
+  return `
+    .container { max-width: 100%; }
+    .header { margin-bottom: 30px; }
+    .logo { max-width: 80px; max-height: 80px; object-fit: contain; }
+    .company-name { font-size: 20pt; font-weight: 700; color: ${primaryColor}; margin-bottom: 8px; }
+    .invoice-title { font-size: 24pt; font-weight: 700; color: ${accentColor}; }
+    .invoice-number { font-size: 16pt; font-weight: 600; font-family: monospace; margin-top: 4px; }
+    .week-number { font-size: 9pt; color: #666; margin-top: 4px; }
+    .section-title { font-size: 10pt; font-weight: 600; text-transform: uppercase; color: ${primaryColor}; margin-bottom: 8px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .party-content { line-height: 1.6; font-size: 9pt; }
+    .party-content strong { font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    thead { background-color: ${primaryColor}; color: white; }
+    th { padding: 10px 8px; text-align: left; font-size: 8pt; font-weight: 600; text-transform: uppercase; }
+    th.right, td.right { text-align: right; }
+    td { padding: 8px; border-bottom: 1px solid #e0e0e0; font-size: 9pt; }
+    tbody tr:nth-child(even) { background-color: #f9f9f9; }
+    .totals { margin-left: auto; width: 300px; margin-top: 20px; }
+    .total-row { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e0e0e0; font-size: 9pt; }
+    .total-row.final { background-color: ${accentColor}; color: white; font-weight: 700; font-size: 11pt; margin-top: 4px; padding: 12px; }
+    .payment-section { display: flex; gap: 30px; margin-top: 30px; padding-top: 20px; border-top: 2px solid ${primaryColor}; }
+    .payment-details { flex: 1; }
+    .payment-info { line-height: 1.8; font-size: 9pt; }
+    .qr-section { text-align: center; }
+    .qr-image { width: 140px; height: 140px; }
+    .qr-label { font-size: 8pt; font-weight: 600; margin-top: 8px; }
+    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 7pt; color: #666; }
+    .note { margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; font-size: 9pt; }
+    .mono { font-family: monospace; }
+  `;
+}
+
+function getTemplateBody(
+  invoice: Invoice,
+  company: Company,
+  client: Client,
+  lines: InvoiceLine[],
+  template: any,
+  qrCodeUrl: string,
+  weekNumber: string,
+  t: any,
+  language: string
+): string {
+  return `
+    <div class="container">
+      <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 2px solid ${template.config.primaryColor};">
+        <div>
+          ${template.config.showLogo && company.logo_url ? `<img src="${company.logo_url}" alt="Logo" class="logo">` : ''}
+          <div class="company-name">${company.name}</div>
+          <div style="font-size: 9pt; color: #666; line-height: 1.6;">
+            ${company.address}<br>
+            KVK: ${company.kvk} | BTW: ${company.vat_number}<br>
+            ${company.email}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div class="invoice-title">${t.invoice}</div>
+          <div class="invoice-number">${invoice.invoice_number}</div>
+          ${template.config.showWeekNumber ? `<div class="week-number">Week ${weekNumber}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="section-title">${t.buyer}</div>
+          <div class="party-content">
+            <strong>${client.name}</strong><br>
+            ${client.address}${client.vat_number ? `<br>BTW: ${client.vat_number}` : ''}
+          </div>
+        </div>
+        <div>
+          <div class="section-title">${t.invoiceDetails}</div>
+          <div class="party-content">
+            <strong>${t.issueDate}:</strong> ${formatDate(invoice.issue_date, language)}<br>
+            <strong>${t.dueDate}:</strong> ${formatDate(invoice.due_date, language)}<br>
+            <strong>${t.reference}:</strong> ${invoice.payment_reference}
+          </div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th>${t.description}</th>
+            <th class="right" style="width: 70px;">${t.quantity}</th>
+            <th class="right" style="width: 90px;">${t.unitPrice}</th>
+            <th class="right" style="width: 60px;">${t.vatRate}</th>
+            <th class="right" style="width: 100px;">${t.gross}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lines.map((line, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${line.description}</td>
+              <td class="right mono">${line.quantity}</td>
+              <td class="right mono">${formatCurrency(line.unit_price, language)}</td>
+              <td class="right mono">${line.vat_rate}%</td>
+              <td class="right mono"><strong>${formatCurrency(line.line_gross, language)}</strong></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <div class="total-row">
+          <span>${t.totalNet}:</span>
+          <span class="mono">${formatCurrency(invoice.total_net, language)}</span>
+        </div>
+        <div class="total-row">
+          <span>${t.totalVat}:</span>
+          <span class="mono">${formatCurrency(invoice.total_vat, language)}</span>
+        </div>
+        <div class="total-row final">
+          <span>${t.totalGross}:</span>
+          <span class="mono">${formatCurrency(invoice.total_gross, language)}</span>
+        </div>
+      </div>
+
+      ${invoice.vat_note ? `<div class="note">${invoice.vat_note}</div>` : ''}
+
+      ${template.config.showBankDetails || template.config.showQRCode ? `
+        <div class="payment-section">
+          ${template.config.showBankDetails ? `
+            <div class="payment-details">
+              <div class="section-title">${t.paymentDetails}</div>
+              <div class="payment-info">
+                IBAN: <span class="mono">${company.iban}</span><br>
+                BIC: <span class="mono">${company.bic}</span><br>
+                ${t.amount}: <span class="mono"><strong>${formatCurrency(invoice.total_gross, language)}</strong></span><br>
+                ${t.reference}: <span class="mono">${invoice.invoice_number}</span>
+              </div>
+            </div>
+          ` : ''}
+          ${template.config.showQRCode ? `
+            <div class="qr-section">
+              <img src="${qrCodeUrl}" alt="QR Code" class="qr-image">
+              <div class="qr-label">${t.scanToPay}</div>
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <div class="footer">
+        ${company.name} · KVK ${company.kvk} · BTW ${company.vat_number} · IBAN ${company.iban}
+      </div>
+    </div>
+  `;
 }
 
 function getTranslations(language: string) {
@@ -325,6 +256,7 @@ function getTranslations(language: string) {
       issueDate: 'Data wystawienia',
       dueDate: 'Termin płatności',
       invoiceNumber: 'Numer faktury',
+      invoiceDetails: 'Szczegóły faktury',
       seller: 'Sprzedawca',
       buyer: 'Nabywca',
       no: 'LP',
@@ -350,6 +282,7 @@ function getTranslations(language: string) {
       issueDate: 'Factuurdatum',
       dueDate: 'Vervaldatum',
       invoiceNumber: 'Factuurnummer',
+      invoiceDetails: 'Factuurgegevens',
       seller: 'Verkoper',
       buyer: 'Koper',
       no: 'Nr.',
@@ -375,6 +308,7 @@ function getTranslations(language: string) {
       issueDate: 'Issue Date',
       dueDate: 'Due Date',
       invoiceNumber: 'Invoice Number',
+      invoiceDetails: 'Invoice Details',
       seller: 'Seller',
       buyer: 'Buyer',
       no: 'No.',

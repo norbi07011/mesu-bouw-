@@ -44,11 +44,11 @@ A professional, offline-capable invoice management system for NORBS SERVICE with
 - **Success criteria**: Invoice number increments correctly with week/year display, Dutch VAT rates apply correctly (0%/9%/21%), totals calculate accurately, PDF generates successfully with all Dutch requirements
 
 ### PDF Generation with QR Code
-- **Functionality**: Generate professional PDF/HTML invoices with SEPA EPC QR codes for payment, company logo, ISO week numbers, Dutch tax compliance details; Export in multiple formats (PDF, CSV, JSON, XML, Excel)
-- **Purpose**: Provide print-ready, scannable invoices for clients meeting Dutch invoicing standards with flexible export options for accounting systems
-- **Trigger**: "Download" dropdown menu on invoice list
-- **Progression**: Select invoice → Choose format (PDF/Excel/CSV/JSON/XML) → Generate file → Download
-- **Success criteria**: PDF contains all invoice data with company logo, Dutch standards (week number, BTW details), QR code scans correctly with SEPA payment info, VAT breakdown shows correct Dutch rates; All export formats contain complete invoice data
+- **Functionality**: Generate professional PDF/HTML invoices with SEPA EPC QR codes for payment, company logo, ISO week numbers, Dutch tax compliance details; Export in multiple formats (PDF, CSV, JSON, XML, Excel); **Multiple professional invoice templates with different styles and layouts**
+- **Purpose**: Provide print-ready, scannable invoices for clients meeting Dutch invoicing standards with flexible export options for accounting systems and customizable visual presentation
+- **Trigger**: "Download" dropdown menu on invoice list or template selection in Settings
+- **Progression**: Select invoice → Choose format (PDF/Excel/CSV/JSON/XML) → Generate file → Download; OR Settings → Templates tab → Choose from 5 styles (Classic, Modern, Minimal, Professional, Creative) → Preview → Save selection
+- **Success criteria**: PDF contains all invoice data with company logo, Dutch standards (week number, BTW details), QR code scans correctly with SEPA payment info, VAT breakdown shows correct Dutch rates; All export formats contain complete invoice data; **Selected template applies to all generated PDFs with consistent styling**
 
 ### Financial Reports
 - **Functionality**: Generate annual/monthly reports with totals, charts, top clients
@@ -113,19 +113,24 @@ Subtle and purposeful - animations should reinforce actions (save confirmations,
 ## Component Selection
 - **Components**: 
   - Dialog for forms (client/product/invoice creation)
-  - Card for data display (invoices, reports, dashboard KPIs)
+  - Card for data display (invoices, reports, dashboard KPIs, **template selection cards**)
   - Table for lists (clients, products, invoice lines)
-  - Select for dropdowns (client selection, VAT rates)
+  - Select for dropdowns (client selection, VAT rates, **template selection**)
   - Input for text fields with labels
   - Button with primary/secondary variants
-  - Tabs for report views and settings sections
+  - Tabs for report views and settings sections (**including invoice templates tab**)
   - Calendar for date selection (issue/due dates)
-  - Badge for status indicators (paid/unpaid)
+  - Badge for status indicators (paid/unpaid, **template features**)
+  - **Avatar for company logo display**
+  - **Custom invoice template preview component with scalable rendering**
   
 - **Customizations**: 
   - Custom invoice line item editor with live total calculation
   - PDF preview component with download action
   - Custom KPI cards with large numbers and trend indicators
+  - **5 distinct invoice template layouts (Classic, Modern, Minimal, Professional, Creative)**
+  - **Template selector with visual previews and color swatches**
+  - **Scalable template preview component for Settings page**
   
 - **States**: 
   - Buttons: hover with slight lift, active with scale-down, disabled with opacity

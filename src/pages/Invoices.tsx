@@ -22,6 +22,7 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
   const [invoices, setInvoices] = useKV<Invoice[]>('invoices', []);
   const [clients] = useKV<Client[]>('clients', []);
   const [company] = useKV<Company | undefined>('company', undefined);
+  const [selectedTemplateId] = useKV<string>('invoice_template', 'classic');
 
   const sortedInvoices = useMemo(() => {
     return (invoices || []).sort((a, b) =>
@@ -47,7 +48,7 @@ export default function Invoices({ onNavigate }: InvoicesProps) {
     }
 
     try {
-      await generateInvoicePDF(invoice, company, client, invoice.lines, i18n.language);
+      await generateInvoicePDF(invoice, company, client, invoice.lines, i18n.language, selectedTemplateId || 'classic');
       toast.success('PDF generated');
     } catch (error) {
       toast.error('Failed to generate PDF');
