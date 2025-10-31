@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { useKV } from '@github/spark/hooks';
+import { useInvoices, useClients } from '@/hooks/useElectronDB';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileText, Users, Package, ChartBar } from '@phosphor-icons/react';
+import { Plus, FileText, Users, Package, ChartBar, Download, DeviceMobile } from '@phosphor-icons/react';
 import { Invoice, Client } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/invoice-utils';
 import { useMemo } from 'react';
+import { toast } from 'sonner';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
@@ -14,10 +15,126 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { t, i18n } = useTranslation();
-  const [invoices] = useKV<Invoice[]>('invoices', []);
-  const [clients] = useKV<Client[]>('clients', []);
+  const { invoices, loading: invoicesLoading } = useInvoices();
+  const { clients, loading: clientsLoading } = useClients();
+
+  // Download handlers (same as in App.tsx)
+  const handleDownloadDesktop = async () => {
+    try {
+      // Próbuj pobrać gotowy installer
+      const installerUrl = '/MESSU-BOUW-Simple-Installer.zip';
+      
+      const link = document.createElement('a');
+      link.href = installerUrl;
+      link.download = 'MESSU-BOUW-Simple-Installer.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('🎯 Pobieranie instalatora Windows...', {
+        description: 'Rozpakuj ZIP i uruchom INSTALL.bat jako administrator'
+      });
+      
+    } catch (error) {
+      console.error('Download error:', error);
+      
+      // Fallback - instrukcje tekstowe
+      const instructionsText = `MESSU BOUW - Instrukcje Instalacji
+      
+🚀 GOTOWY INSTALLER:
+1. Pobierz: MESSU-BOUW-Simple-Installer.zip
+2. Rozpakuj ZIP 
+3. Uruchom INSTALL.bat jako administrator
+4. Postępuj zgodnie z instrukcjami
+5. Aplikacja zostanie zainstalowana w C:\\MESSU-BOUW\\
+
+📋 WYMAGANIA:
+- Windows 10/11
+- Uprawnienia administratora
+- 500MB wolnego miejsca
+
+💾 RĘCZNA INSTALACJA (jeśli installer nie działa):
+1. Pobierz i zainstaluj Node.js: https://nodejs.org/
+2. Rozpakuj folder aplikacji 
+3. Otwórz folder w Terminal/PowerShell jako administrator
+4. Wpisz: npm install
+5. Wpisz: npm run electron
+6. Aplikacja się uruchomi!
+
+📞 POMOC TECHNICZNA:
+Email: support@messubouw.com
+
+Wersja: 1.0.0 (Build: ${new Date().toISOString().split('T')[0]})`;
+
+      const blob = new Blob([instructionsText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'MESSU-BOUW-Instrukcje.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('📁 Instrukcje pobrane!', {
+        description: 'Sprawdź plik w Downloads'
+      });
+    }
+  };
+
+  const handleDownloadMobile = async () => {
+    try {
+      let networkUrl = 'http://192.168.178.75:5002/';
+      
+      if (window.electronAPI?.getNetworkAddress) {
+        try {
+          const ipAddress = await window.electronAPI.getNetworkAddress();
+          networkUrl = `http://${ipAddress}:5002/`;
+        } catch (e) {
+          // Use fallback
+        }
+      }
+      
+      // Copy to clipboard
+      try {
+        if (window.electronAPI?.copyToClipboard) {
+          await window.electronAPI.copyToClipboard(networkUrl);
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(networkUrl);
+        } else {
+          const textArea = document.createElement('textarea');
+          textArea.value = networkUrl;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        
+        toast.success('📱 Adres skopiowany!', {
+          description: `${networkUrl} - Wklej w przeglądarce telefonu`
+        });
+        
+        // Open QR code
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(networkUrl)}&format=png`;
+        window.open(qrUrl, '_blank', 'width=400,height=400');
+        
+      } catch (clipboardError) {
+        alert(`📱 Skopiuj ten adres i wklej w przeglądarce telefonu:\n\n${networkUrl}`);
+      }
+      
+    } catch (error) {
+      toast.error('❌ Błąd');
+    }
+  };
 
   const stats = useMemo(() => {
+    if (invoicesLoading || !invoices) return {
+      unpaid: 0,
+      thisMonth: 0,
+      thisYear: 0,
+      totalInvoices: 0,
+    };
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -46,7 +163,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       thisYear: thisYearTotal,
       totalInvoices: invoices?.length || 0,
     };
-  }, [invoices]);
+  }, [invoices, invoicesLoading]);
 
   const recentInvoices = useMemo(() => {
     return (invoices || [])
@@ -65,99 +182,216 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">{t('dashboard.title')}</h1>
-        <Button onClick={() => onNavigate('invoices-new')} size="lg">
-          <Plus className="mr-2" />
-          {t('dashboard.newInvoice')}
-        </Button>
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100 relative">
+      {/* Background Logo */}
+      <div className="fixed inset-0 flex items-center justify-center pointer-events-none opacity-5 z-0">
+        <img 
+          src="/messu-bouw-logo.jpg" 
+          alt="MESSU BOUW" 
+          className="max-w-2xl max-h-2xl object-contain"
+        />
       </div>
+      
+      <div className="max-w-7xl mx-auto p-6 space-y-8 relative z-10">
+        {/* Modern Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-blue-600 via-purple-600 to-indigo-700 p-8 text-white shadow-2xl">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight mb-2">
+                🎯 {t('dashboard.title')}
+              </h1>
+              <p className="text-blue-100 text-lg">Witaj w nowoczesnym systemie fakturowania</p>
+            </div>
+            <button 
+              onClick={() => onNavigate('invoices-new')}
+              className="px-8 py-4 bg-linear-to-r from-emerald-500 to-green-600 text-white rounded-2xl hover:from-emerald-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 font-bold text-lg shadow-xl"
+            >
+              <Plus className="inline mr-2" size={24} />
+              {t('dashboard.newInvoice')}
+            </button>
+          </div>
+          {/* Decorative elements */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-400/20 rounded-full blur-xl"></div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.unpaid')}</CardTitle>
-            <FileText className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.unpaid, i18n.language)}</div>
-          </CardContent>
-        </Card>
+        {/* Modern Download Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="relative group overflow-hidden rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent"></div>
+            <div className="relative">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <Download size={32} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">💻 Pobierz na komputer</h3>
+                  <p className="text-blue-100">Aplikacja desktop Windows z instalatorem</p>
+                </div>
+              </div>
+              <button
+                onClick={handleDownloadDesktop}
+                className="w-full py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold"
+              >
+                Pobierz teraz
+              </button>
+            </div>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.thisMonth')}</CardTitle>
-            <ChartBar className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.thisMonth, i18n.language)}</div>
-          </CardContent>
-        </Card>
+          <div className="relative group overflow-hidden rounded-2xl bg-linear-to-br from-green-500 to-green-600 p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent"></div>
+            <div className="relative">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <DeviceMobile size={32} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">📱 Pobierz na telefon</h3>
+                  <p className="text-green-100">Skopiuj adres i otwórz w przeglądarce telefonu</p>
+                </div>
+              </div>
+              <button
+                onClick={handleDownloadMobile}
+                className="w-full py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold"
+              >
+                Skopiuj adres
+              </button>
+            </div>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.thisYear')}</CardTitle>
-            <ChartBar className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.thisYear, i18n.language)}</div>
-          </CardContent>
-        </Card>
+        {/* Modern Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="group relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm border border-white/30 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="absolute inset-0 bg-linear-to-br from-red-500/10 to-red-600/10"></div>
+            <div className="relative flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-600">{t('dashboard.unpaid')}</h3>
+              <div className="p-2 bg-red-100 rounded-xl">
+                <FileText className="text-red-600" size={20} />
+              </div>
+            </div>
+            <div className="relative text-3xl font-bold text-gray-900 font-mono">
+              {formatCurrency(stats.unpaid, i18n.language)}
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-red-200/30 rounded-full blur-lg"></div>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.totalInvoices')}</CardTitle>
-            <FileText className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{stats.totalInvoices}</div>
-          </CardContent>
-        </Card>
+          <div className="group relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm border border-white/30 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-blue-600/10"></div>
+            <div className="relative flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-600">{t('dashboard.thisMonth')}</h3>
+              <div className="p-2 bg-blue-100 rounded-xl">
+                <ChartBar className="text-blue-600" size={20} />
+              </div>
+            </div>
+            <div className="relative text-3xl font-bold text-gray-900 font-mono">
+              {formatCurrency(stats.thisMonth, i18n.language)}
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-blue-200/30 rounded-full blur-lg"></div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm border border-white/30 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="absolute inset-0 bg-linear-to-br from-green-500/10 to-green-600/10"></div>
+            <div className="relative flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-600">{t('dashboard.thisYear')}</h3>
+              <div className="p-2 bg-green-100 rounded-xl">
+                <ChartBar className="text-green-600" size={20} />
+              </div>
+            </div>
+            <div className="relative text-3xl font-bold text-gray-900 font-mono">
+              {formatCurrency(stats.thisYear, i18n.language)}
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-green-200/30 rounded-full blur-lg"></div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm border border-white/30 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="absolute inset-0 bg-linear-to-br from-purple-500/10 to-purple-600/10"></div>
+            <div className="relative flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-600">{t('dashboard.totalInvoices')}</h3>
+              <div className="p-2 bg-purple-100 rounded-xl">
+                <FileText className="text-purple-600" size={20} />
+              </div>
+            </div>
+            <div className="relative text-3xl font-bold text-gray-900 font-mono">
+              {stats.totalInvoices}
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-purple-200/30 rounded-full blur-lg"></div>
+          </div>
+        </div>
+
+        {/* Modern Recent Invoices */}
+        <div className="relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm border border-white/30 shadow-xl">
+          <div className="absolute inset-0 bg-linear-to-br from-slate-500/5 to-gray-500/5"></div>
+          <div className="relative p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.recentInvoices')}</h2>
+                <p className="text-gray-600">Ostatnie 5 faktur w systemie</p>
+              </div>
+              <div className="p-3 bg-slate-100 rounded-xl">
+                <FileText className="text-slate-600" size={24} />
+              </div>
+            </div>
+            
+            {recentInvoices.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="p-6 bg-linear-to-br from-blue-100 to-indigo-100 rounded-3xl inline-block mb-6">
+                  <FileText className="text-blue-600" size={64} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">{t('dashboard.noInvoices')}</h3>
+                <p className="text-gray-600 mb-6 text-lg">{t('dashboard.createFirst')}</p>
+                <button 
+                  onClick={() => onNavigate('invoices-new')}
+                  className="px-8 py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 font-bold text-lg shadow-xl"
+                >
+                  <Plus className="inline mr-2" size={20} />
+                  {t('dashboard.newInvoice')}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentInvoices.map((invoice) => {
+                  const client = clients?.find(c => c.id === invoice.client_id);
+                  return (
+                    <div
+                      key={invoice.id}
+                      className="group relative overflow-hidden rounded-xl bg-white/60 backdrop-blur-sm border border-white/50 p-6 hover:bg-white/80 hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-[1.02]"
+                      onClick={() => onNavigate(`invoices-${invoice.id}`)}
+                    >
+                      <div className="absolute inset-0 bg-linear-to-r from-blue-500/5 to-purple-500/5 group-hover:from-blue-500/10 group-hover:to-purple-500/10 transition-all duration-300"></div>
+                      <div className="relative flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-mono font-bold text-lg text-gray-900 mb-1">
+                            {invoice.invoice_number}
+                          </div>
+                          <div className="text-gray-600 font-medium">
+                            {client?.name || 'Unknown'}
+                          </div>
+                        </div>
+                        <div className="text-right mr-6">
+                          <div className="font-mono font-bold text-xl text-gray-900">
+                            {formatCurrency(invoice.total_gross, i18n.language)}
+                          </div>
+                          <div className="text-gray-600">
+                            {formatDate(invoice.issue_date, i18n.language)}
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          {getStatusBadge(invoice.status)}
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 w-20 h-20 bg-blue-200/20 rounded-full blur-xl group-hover:bg-purple-200/30 transition-all duration-300"></div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('dashboard.recentInvoices')}</CardTitle>
-          <CardDescription>Latest 5 invoices</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentInvoices.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="mx-auto mb-4 text-muted-foreground" size={48} />
-              <p className="text-lg font-medium mb-2">{t('dashboard.noInvoices')}</p>
-              <p className="text-sm text-muted-foreground mb-4">{t('dashboard.createFirst')}</p>
-              <Button onClick={() => onNavigate('invoices-new')}>
-                <Plus className="mr-2" />
-                {t('dashboard.newInvoice')}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentInvoices.map((invoice) => {
-                const client = clients?.find(c => c.id === invoice.client_id);
-                return (
-                  <div
-                    key={invoice.id}
-                    className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
-                    onClick={() => onNavigate(`invoices-${invoice.id}`)}
-                  >
-                    <div className="flex-1">
-                      <div className="font-mono font-medium">{invoice.invoice_number}</div>
-                      <div className="text-sm text-muted-foreground">{client?.name || 'Unknown'}</div>
-                    </div>
-                    <div className="text-right mr-4">
-                      <div className="font-mono font-semibold">{formatCurrency(invoice.total_gross, i18n.language)}</div>
-                      <div className="text-sm text-muted-foreground">{formatDate(invoice.issue_date, i18n.language)}</div>
-                    </div>
-                    {getStatusBadge(invoice.status)}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

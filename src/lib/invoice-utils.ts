@@ -1,3 +1,6 @@
+// Import nowego generatora SEPA QR
+import { generateSEPAQRCode } from './sepa-qr-generator';
+
 export function generateInvoiceNumber(year: number, month: number, seq: number): string {
   const yearStr = year.toString();
   const monthStr = month.toString().padStart(2, '0');
@@ -62,6 +65,10 @@ export function addDays(date: string, days: number): string {
   return result.toISOString().split('T')[0];
 }
 
+/**
+ * @deprecated Użyj generateSEPAQRCode() z sepa-qr-generator.ts
+ * Funkcja wrapper dla kompatybilności wstecznej
+ */
 export function generateSEPAQRPayload(
   bic: string,
   name: string,
@@ -70,22 +77,14 @@ export function generateSEPAQRPayload(
   reference: string,
   information: string
 ): string {
-  const lines = [
-    'BCD',
-    '002',
-    '1',
-    'SCT',
+  return generateSEPAQRCode({
     bic,
     name,
     iban,
-    `EUR${amount.toFixed(2)}`,
-    '',
-    '',
+    amount,
     reference,
-    information,
-  ];
-  
-  return lines.join('\n');
+    purpose: information
+  });
 }
 
 export function getNextInvoiceNumber(

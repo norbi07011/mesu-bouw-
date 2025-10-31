@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useKV } from '@github/spark/hooks';
+import { useInvoices, useClients } from '@/hooks/useElectronDB';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,8 +39,8 @@ const TAX_RATES = {
 
 export default function Reports() {
   const { t, i18n } = useTranslation();
-  const [invoices] = useKV<Invoice[]>('invoices', []);
-  const [clients] = useKV<Client[]>('clients', []);
+  const { invoices } = useInvoices();
+  const { clients } = useClients();
   
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
@@ -259,7 +259,7 @@ export default function Reports() {
     );
   }
 
-  const vatPieData = Object.entries(report.vatBreakdown).map(([rate, data]) => ({
+  const vatPieData = Object.entries(report.vatBreakdown).map(([rate, data]: [string, any]) => ({
     name: `${rate}% VAT`,
     value: data.gross,
     vatAmount: data.vat,
@@ -302,9 +302,9 @@ export default function Reports() {
             <Card key={idx} className={warning.type === 'warning' ? 'border-yellow-500' : 'border-blue-500'}>
               <CardContent className="flex items-start gap-3 p-4">
                 {warning.type === 'warning' ? (
-                  <Warning className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+                  <Warning className="text-yellow-600 shrink-0 mt-0.5" size={20} />
                 ) : (
-                  <Info className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+                  <Info className="text-blue-600 shrink-0 mt-0.5" size={20} />
                 )}
                 <p className="text-sm">{warning.message}</p>
               </CardContent>
@@ -740,7 +740,7 @@ export default function Reports() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(report.vatBreakdown).map(([rate, data]) => (
+                  {Object.entries(report.vatBreakdown).map(([rate, data]: [string, any]) => (
                     <TableRow key={rate}>
                       <TableCell className="font-medium">
                         <Badge variant={rate === '21' ? 'default' : rate === '9' ? 'secondary' : 'outline'}>
@@ -771,7 +771,7 @@ export default function Reports() {
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={Object.entries(report.vatBreakdown).map(([rate, data]) => ({
+                  <BarChart data={Object.entries(report.vatBreakdown).map(([rate, data]: [string, any]) => ({
                     rate: `${rate}% VAT`,
                     net: data.net,
                     vat: data.vat,

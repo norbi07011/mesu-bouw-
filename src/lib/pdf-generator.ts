@@ -34,10 +34,21 @@ export async function generateInvoicePDF(
   try {
     const template = getTemplateById(templateId);
     
+    // Wygeneruj QR kod dla SEPA płatności (EPC standard)
+    console.log('Generating QR code with payload:', invoice.payment_qr_payload);
+    
     const qrDataUrl = await QRCode.toDataURL(invoice.payment_qr_payload, {
+      errorCorrectionLevel: 'M',  // Medium - wymagane dla SEPA
+      type: 'image/png',
       width: 200,
-      margin: 1,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
     });
+    
+    console.log('QR code generated successfully');
 
     let logoDataUrl = '';
     if (template.config.showLogo && company.logo_url) {
@@ -264,7 +275,7 @@ function getTemplateBody(
         </div>
       </div>
 
-      ${invoice.vat_note ? `<div class="note">${escapeHtml(invoice.vat_note)}</div>` : ''}
+      ${invoice.vat_note ? `<div class="note">${escapeHtml(t.reverseChargeNote)}</div>` : ''}
 
       ${template.config.showBankDetails || template.config.showQRCode ? `
         <div class="payment-section">
@@ -322,6 +333,7 @@ function getTranslations(language: string) {
       scanToPay: 'Zeskanuj, aby zapłacić',
       amount: 'Kwota',
       reference: 'Tytuł przelewu',
+      reverseChargeNote: 'Odwrotne obciążenie (reverse charge) – art. 194 dyrektywy VAT',
     },
     nl: {
       invoice: 'BTW-factuur',
@@ -348,6 +360,7 @@ function getTranslations(language: string) {
       scanToPay: 'Scan om te betalen',
       amount: 'Bedrag',
       reference: 'Referentie',
+      reverseChargeNote: 'Verleggingsregeling – Artikel 194 BTW-richtlijn',
     },
     en: {
       invoice: 'VAT Invoice',
@@ -374,6 +387,7 @@ function getTranslations(language: string) {
       scanToPay: 'Scan to Pay',
       amount: 'Amount',
       reference: 'Reference',
+      reverseChargeNote: 'Reverse charge – Article 194 VAT Directive',
     },
   };
 

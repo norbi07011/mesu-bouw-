@@ -27,7 +27,11 @@ export interface Client {
   id: string;
   name: string;
   address: string;
-  vat_number: string;
+  country: string; // Kraj klienta
+  client_type: 'individual' | 'company'; // Osoba prywatna czy firma
+  vat_number: string; // BTW/VAT number
+  kvk_number?: string; // KVK numer (tylko dla Holandii)
+  nip_number?: string; // NIP (tylko dla Polski)
   email: string;
   phone: string;
   notes: string;

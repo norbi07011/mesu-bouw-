@@ -22,4 +22,8 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  // PWA Configuration
+  server: {
+    host: true, // Umożliwia dostęp z innych urządzeń w sieci
+  },
 });

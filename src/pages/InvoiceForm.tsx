@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useKV } from '@github/spark/hooks';
+import { useInvoices, useClients, useProducts, useCompany } from '@/hooks/useElectronDB';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,11 +29,13 @@ interface InvoiceFormProps {
 
 export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
   const { t, i18n } = useTranslation();
-  const [clients] = useKV<Client[]>('clients', []);
-  const [products] = useKV<Product[]>('products', []);
-  const [company] = useKV<Company | undefined>('company', undefined);
-  const [invoices, setInvoices] = useKV<Invoice[]>('invoices', []);
-  const [counters, setCounters] = useKV<InvoiceCounter[]>('invoice_counters', []);
+  const { clients } = useClients();
+  const { products } = useProducts();
+  const { company } = useCompany();
+  const { invoices, createInvoice, updateInvoice } = useInvoices();
+  
+  // Temporary counter state - this should ideally be part of the database
+  const [counters, setCounters] = useState<InvoiceCounter[]>([]);
 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
@@ -112,7 +114,7 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
     setLines(newLines);
   };
 
-  const handleSaveInvoice = () => {
+  const handleSaveInvoice = async () => {
     if (!selectedClientId) {
       toast.error('Please select a client');
       return;
@@ -214,16 +216,17 @@ export default function InvoiceForm({ onNavigate }: InvoiceFormProps) {
       lines: invoiceLines,
     };
 
-    setInvoices((currentInvoices) => {
-      const updated = [...(currentInvoices || []), newInvoice];
-      return updated;
-    });
-    
-    toast.success(`Invoice ${number} created`);
-    
-    setTimeout(() => {
-      onNavigate('invoices');
-    }, 100);
+    try {
+      await createInvoice(newInvoice);
+      toast.success(`Invoice ${number} created`);
+      
+      setTimeout(() => {
+        onNavigate('invoices');
+      }, 100);
+    } catch (error) {
+      toast.error('Error creating invoice');
+      console.error('Create invoice error:', error);
+    }
   };
 
   return (
