@@ -32,3 +32,6 @@ pids
 .devcontainer/
 
 .spark-workbench-id
+
+# Release folder with large files
+release/
