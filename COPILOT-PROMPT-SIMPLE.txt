@@ -1,0 +1,219 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                   PROMPT DLA COPILOT - BTW INTEGRATION                    ║
+║                      SKOPIUJ I WKLEJ CAŁOŚĆ                               ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+Pobierz z https://github.com/norbi07011/mesu-bouw- (branch main, commit 79979d4) 
+kompletny moduł BTW Aangifte i zintegruj go z moją aplikacją.
+
+⚠️ ZASADY INTEGRACJI - MUSISZ PRZESTRZEGAĆ:
+
+1. NIE NADPISUJ istniejących plików - tylko ROZSZERZAJ
+2. NIE USUWAJ żadnych funkcji, hooków, komponentów
+3. NIE ZMIENIAJ struktury moich folderów
+4. DOSTOSUJ importy i ścieżki do mojej struktury
+5. ZACHOWAJ wszystkie działające funkcje (faktury, klienci, produkty)
+6. DODAJ nowy kod BEZ konfliktów z istniejącym
+
+📦 CO ZROBIĆ:
+
+NOWE PLIKI (skopiuj):
+✅ src/pages/BTWAangifte.tsx - główny komponent BTW (680 linii)
+
+ROZSZERZ ISTNIEJĄCE (merge, nie replace!):
+
+✅ src/App.tsx:
+   - import BTWAangifte from './pages/BTWAangifte';
+   - import { Receipt } from '@phosphor-icons/react';
+   - Dodaj 'btw' do type Page
+   - Dodaj do navItems: { id: 'btw', icon: Receipt, label: t('nav.btw') }
+   - Dodaj case 'btw': return <BTWAangifte />;
+
+✅ src/hooks/useElectronDB.ts (dopisz na końcu):
+   - useBTW() - zarządzanie deklaracjami BTW
+   - useExpenses() - pobieranie wydatków
+   - useKilometers() - pobieranie kilometrów
+
+✅ src/lib/pdf-generator.ts (dopisz na końcu):
+   - generateBTWDeclarationPDF() - generowanie PDF z deklaracją
+
+✅ src/types/btw.ts (rozszerz):
+   - BTWDeclaration interface
+   - BTWCalculationData interface
+   - BTWPeriod type
+
+✅ src/i18n/pl.ts, nl.ts, en.ts:
+   - nav.btw: 'BTW Aangifte' / 'VAT Declaration'
+   - Pełna sekcja btw: { title, subtitle, declarationSaved, ... }
+
+✅ package.json:
+   - "jspdf": "^2.5.2"
+   - "jspdf-autotable": "^3.8.3"
+
+🎯 FUNKCJONALNOŚĆ BTW:
+
+1. AUTOMATYCZNE POBIERANIE z wszystkich modułów:
+   - Faktury (Invoices) → przychody + VAT należny
+   - Wydatki (Expenses) → VAT naliczony do odliczenia
+   - Kilometry (Kilometers) → prywatne użycie auta
+
+2. AUTOMATYCZNE KALKULACJE w czasie rzeczywistym:
+   - Wykrywa stawki VAT: 21%, 9%, 0%, reverse charge
+   - Oblicza VAT należny z przychodów
+   - Oblicza VAT naliczony z wydatków
+   - Oblicza VAT z prywatnych km (€0.21/km)
+   - Kalkuluje bilans (do zapłaty/zwrot)
+
+3. DASHBOARD z 4 KARTAMI:
+   - Karta 1 (niebieska): Przychody - podział na stawki
+   - Karta 2 (czerwona): VAT należny - suma do zapłaty
+   - Karta 3 (zielona): VAT naliczony - suma do odliczenia
+   - Karta 4 (pomarańczowa/fioletowa): Bilans końcowy
+
+4. SELEKTOR OKRESU:
+   - Wybór roku (4 ostatnie lata)
+   - Wybór kwartału (Q1, Q2, Q3, Q4)
+   - Automatyczny przeliczanie przy zmianie
+
+5. DEADLINE MONITORING:
+   - Automatyczne obliczanie terminu płatności
+   - Ostrzeżenia: czerwone (po terminie), pomarańczowe (pilne), zielone (OK)
+   - Licznik dni do deadline
+
+6. SZCZEGÓŁOWA TABELA RUBRYK:
+   - Rubriek 1a: Leveringen 21% + VAT
+   - Rubriek 1b: Leveringen 9% + VAT
+   - Rubriek 1c: Leveringen 0%
+   - Rubriek 1d: Reverse charge
+   - Rubriek 4: Privégebruik (prywatne km)
+   - Rubriek 5b: Voorbelasting (VAT do odliczenia)
+   - Podsumowanie: Te betalen/Aftrekbaar/Saldo
+
+7. ZARZĄDZANIE DEKLARACJAMI:
+   - Zapis jako concept (szkic)
+   - Zapis jako ingediend (złożona)
+   - Aktualizacja istniejących
+   - Historia wszystkich deklaracji
+   - Usuwanie deklaracji
+
+8. EKSPORT PDF - KOMPLETNY DOKUMENT dla księgowego:
+   ✅ Header z logo i danymi firmy
+   ✅ Tabela wszystkich rubryk (1a-5b)
+   ✅ Szczegółowe obliczenia VAT
+   ✅ Podsumowanie finansowe
+   ✅ Wszystkie przychody z okresu
+   ✅ Wszystkie wydatki z okresu
+   ✅ Wszystkie kilometry z okresu
+   ✅ Końcowy bilans (do zapłaty/zwrot)
+   ✅ Status deklaracji
+   ✅ Data wygenerowania
+   → KSIĘGOWY MA WSZYSTKO czego potrzebuje!
+
+9. HISTORIA DEKLARACJI:
+   - Tabela wszystkich zapisanych deklaracji
+   - Filtry: okres, status
+   - Kolumny: okres, status, przychód, VAT, saldo
+   - Przyciski: PDF export, edycja, usuwanie
+
+📋 STRUKTURA DANYCH (kompatybilność):
+
+Faktury (Invoices):
+{
+  id: string;
+  issue_date: string;     // "2025-01-15"
+  total_net: number;
+  total_vat: number;
+  vat_note?: string;      // "reverse charge" → wykrywa odwrotne
+  status: string;
+}
+
+Wydatki (Expenses):
+{
+  id: string;
+  date: string;           // "2025-01-15"
+  vat_amount: number;
+  amount: number;
+}
+
+Kilometry (Kilometers):
+{
+  id: string;
+  date: string;           // "2025-01-15"
+  distance: number;
+  is_private: boolean;
+}
+
+⚠️ Jeśli moja struktura jest inna - dostosuj kalkulacje w BTWAangifte.tsx!
+
+🔄 PROCES INTEGRACJI:
+
+KROK 1: Pobierz BTWAangifte.tsx z repo
+KROK 2: Dostosuj importy do mojej struktury folderów
+KROK 3: Dopisz 3 hooki do useElectronDB.ts (koniec pliku)
+KROK 4: Dodaj generateBTWDeclarationPDF() do pdf-generator.ts
+KROK 5: Rozszerz App.tsx o routing BTW (zachowaj stare!)
+KROK 6: Dodaj typy BTW do types/
+KROK 7: Dodaj tłumaczenia do i18n/ (PL, NL, EN)
+KROK 8: npm install jspdf jspdf-autotable
+KROK 9: npm run dev i testuj!
+
+✅ WERYFIKACJA po integracji:
+
+□ Menu pokazuje "BTW Aangifte" z ikoną
+□ Kliknięcie w BTW otwiera stronę
+□ 4 karty wyświetlają dane
+□ Selektor roku/kwartału działa
+□ Dane z faktur się pobierają
+□ Dane z wydatków się pobierają
+□ Dane z kilometrów się pobierają
+□ Kalkulacje się przeliczają
+□ Tabela rubryk jest poprawna
+□ "Opslaan" zapisuje deklarację
+□ "Export PDF" generuje plik
+□ PDF zawiera wszystkie dane
+□ Historia deklaracji działa
+□ Usuwanie działa
+□ Tłumaczenia działają (PL/NL/EN)
+□ WSZYSTKIE STARE funkcje nadal działają!
+
+🆘 PROBLEMY?
+
+"Cannot find module 'jspdf'" → npm install jspdf jspdf-autotable
+"Cannot find BTWAangifte" → sprawdź import path
+"Missing translation key" → dodaj sekcję btw: {} w i18n
+"Kalkulacje pokazują 0" → sprawdź format dat (YYYY-MM-DD)
+"PDF nie działa" → sprawdź console, czy jspdf zainstalowany
+
+📚 PEŁNA DOKUMENTACJA:
+
+Repo: https://github.com/norbi07011/mesu-bouw-
+Commit: 79979d4
+Pliki:
+- COPILOT-PROMPT-BTW-INTEGRATION.md (pełny przewodnik, 885 linii)
+- BTW-INTEGRATION-GUIDE.md (szczegóły integracji)
+- BTW-SYSTEM-COMPLETE.md (dokumentacja systemu BTW)
+- BTW-QUICK-REFERENCE.txt (szybka ściąga)
+
+Link do commitu:
+https://github.com/norbi07011/mesu-bouw-/commit/79979d4
+
+Link do pliku BTW:
+https://github.com/norbi07011/mesu-bouw-/blob/main/src/pages/BTWAangifte.tsx
+
+🎯 PODSUMOWANIE:
+
+BTW Aangifte to kompletny moduł do:
+✅ Automatycznego obliczania VAT z faktur, wydatków, kilometrów
+✅ Kwartalnych deklaracji BTW dla holenderskiego systemu
+✅ Eksportu PDF z WSZYSTKIMI danymi dla księgowego
+✅ Zarządzania historią deklaracji
+✅ Monitorowania deadlines
+✅ Zgodności z holenderskimi rubrikami (1a-5b)
+
+Moduł NIE PSUJE istniejącej aplikacji - TYLKO DODAJE funkcjonalność!
+
+Po integracji: npm install → npm run dev → testuj!
+
+═══════════════════════════════════════════════════════════════════════════
+
+🚀 GOTOWE! Skopiuj ten prompt do Copilot Chat i zintegruj BTW! 🚀
