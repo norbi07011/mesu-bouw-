@@ -1,0 +1,151 @@
+===========================================
+BTW AANGIFTE - SZYBKA INTEGRACJA
+===========================================
+
+📋 COMMIT ID: d939924 i 1a8a07a
+📦 REPO: https://github.com/norbi07011/mesu-bouw-
+🌿 BRANCH: main
+
+===========================================
+OPCJA 1: PROMPT DLA COPILOT
+===========================================
+
+Użyj tego w Copilot Chat na drugim komputerze:
+
+---KOPIUJ OD TU---
+
+Pobierz z https://github.com/norbi07011/mesu-bouw- (main branch, commit d939924) 
+i zintegruj moduł BTW Aangifte:
+
+NOWE PLIKI (skopiuj):
+- src/pages/BTWAangifte.tsx
+- BTW-SYSTEM-COMPLETE.md
+- QUICK-START.md
+- BTW-INTEGRATION-GUIDE.md
+
+ZMIEŃ W ISTNIEJĄCYCH:
+- src/App.tsx: dodaj import BTWAangifte, typ 'btw', routing case, menu item z Receipt icon
+- src/hooks/useElectronDB.ts: dodaj useBTW(), useExpenses(), useKilometers()
+- src/lib/pdf-generator.ts: dodaj generateBTWDeclarationPDF()
+- src/types/btw.ts: rozszerz BTWCalculationData o kilometers
+- src/i18n/pl.ts: dodaj nav.btw + sekcja btw z 60+ kluczy
+- src/i18n/nl.ts: dodaj nav.btw + sekcja btw z 60+ kluczy
+- src/i18n/en.ts: dodaj nav.btw + sekcja btw z 60+ kluczy
+- package.json: dodaj "jspdf": "^2.5.2", "jspdf-autotable": "^3.8.3"
+
+FUNKCJE:
+- Auto-kalkulacje BTW z faktur/wydatków/km
+- Dashboard z 4 kartami
+- Holenderskie rubryki (1a-5b)
+- Deadline monitoring
+- Historia deklaracji + PDF export
+
+Po integracji: npm install
+
+---KOPIUJ DO TU---
+
+===========================================
+OPCJA 2: KOMENDY GIT (manualna)
+===========================================
+
+# Na drugim komputerze w terminalu:
+
+git clone https://github.com/norbi07011/mesu-bouw-.git
+cd mesu-bouw-
+git pull origin main
+
+# Zobacz zmiany:
+git log -3 --oneline
+git show d939924 --stat
+
+# Zobacz szczegóły konkretnego pliku:
+git show d939924:src/pages/BTWAangifte.tsx
+
+# Zobacz różnice:
+git diff d939924~1 d939924 src/App.tsx
+git diff d939924~1 d939924 src/hooks/useElectronDB.ts
+git diff d939924~1 d939924 src/i18n/pl.ts
+
+# Skopiuj pliki do swojej aplikacji
+
+===========================================
+OPCJA 3: CURL (tylko kluczowe pliki)
+===========================================
+
+# Pobierz główny plik BTW:
+curl -o BTWAangifte.tsx https://raw.githubusercontent.com/norbi07011/mesu-bouw-/main/src/pages/BTWAangifte.tsx
+
+# Pobierz dokumentację:
+curl -o BTW-INTEGRATION-GUIDE.md https://raw.githubusercontent.com/norbi07011/mesu-bouw-/main/BTW-INTEGRATION-GUIDE.md
+
+# Link do commitu na GitHubie:
+https://github.com/norbi07011/mesu-bouw-/commit/d939924
+
+===========================================
+LISTA PLIKÓW DO INTEGRACJI (17)
+===========================================
+
+NOWE (4):
+✅ src/pages/BTWAangifte.tsx
+✅ BTW-SYSTEM-COMPLETE.md
+✅ QUICK-START.md
+✅ BTW-INTEGRATION-GUIDE.md
+
+ZMODYFIKOWANE (13):
+✅ src/App.tsx
+✅ src/hooks/useElectronDB.ts
+✅ src/lib/pdf-generator.ts
+✅ src/types/btw.ts
+✅ src/types/index.ts
+✅ src/types/electron.d.ts
+✅ src/i18n/pl.ts
+✅ src/i18n/nl.ts
+✅ src/i18n/en.ts
+✅ package.json
+✅ package-lock.json
+✅ public/manifest.json
+
+===========================================
+WERYFIKACJA PO INTEGRACJI
+===========================================
+
+1. npm install
+2. npm run dev
+3. Otwórz http://localhost:5000
+4. Sprawdź menu - powinien być "BTW Aangifte"
+5. Kliknij BTW - 4 karty powinny się wyświetlić
+6. Wybierz rok i kwartał
+7. Sprawdź czy dane się przeliczają
+8. Zapisz deklarację (draft)
+9. Eksportuj do PDF
+
+===========================================
+TROUBLESHOOTING
+===========================================
+
+❌ "Cannot find module 'jspdf'"
+   → npm install jspdf jspdf-autotable
+
+❌ "BTWAangifte is not defined"
+   → Dodaj do App.tsx: import BTWAangifte from './pages/BTWAangifte';
+
+❌ "Missing translation key"
+   → Sprawdź src/i18n/pl.ts - musi być sekcja btw: { }
+
+❌ Strona się nie ładuje
+   → Ctrl+Shift+R (hard refresh)
+   → Sprawdź console w DevTools (F12)
+
+===========================================
+WSPARCIE
+===========================================
+
+📚 Pełna dokumentacja: BTW-INTEGRATION-GUIDE.md
+📖 System BTW: BTW-SYSTEM-COMPLETE.md
+🚀 Quick start: QUICK-START.md
+
+Repo: https://github.com/norbi07011/mesu-bouw-
+Commit: d939924 (BTW module)
+Branch: main
+
+===========================================
