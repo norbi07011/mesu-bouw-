@@ -393,3 +393,255 @@ function getTranslations(language: string) {
 
   return translations[language] || translations['en'];
 }
+
+/**
+ * Generate BTW Declaration PDF
+ * Creates a PDF document for Dutch BTW (VAT) quarterly declaration
+ */
+export async function generateBTWDeclarationPDF(
+  declaration: any,
+  company: Company,
+  language: string = 'nl'
+): Promise<void> {
+  try {
+    // Import jsPDF - use dynamic import for better compatibility
+    const jsPDFModule = await import('jspdf');
+    const jsPDF = jsPDFModule.default || jsPDFModule;
+    await import('jspdf-autotable');
+    
+    const doc = new jsPDF();
+    const t = getBTWTranslations(language);
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text(t.title, 105, 20, { align: 'center' });
+    
+    // Company info
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.text(company.name, 20, 35);
+    if (company.vat_number) {
+      doc.text(`${t.vatNumber}: ${company.vat_number}`, 20, 41);
+    }
+    
+    // Declaration period
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`${t.period}: ${declaration.year} - ${declaration.period}`, 105, 55, { align: 'center' });
+    
+    // Status badge
+    doc.setFontSize(10);
+    const statusText = declaration.status === 'draft' ? t.statusDraft : 
+                      declaration.status === 'submitted' ? t.statusSubmitted : t.statusPaid;
+    doc.text(`${t.status}: ${statusText}`, 105, 62, { align: 'center' });
+    
+    let yPos = 75;
+    
+    // Section 1: Revenue (Omzet)
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59);
+    doc.text(t.revenueSection, 20, yPos);
+    yPos += 8;
+    
+    const revenueData = [
+      ['1a', t.revenue21, formatCurrency(declaration.revenue_nl_high || 0), formatCurrency(declaration.vat_high || 0)],
+      ['1b', t.revenue9, formatCurrency(declaration.revenue_nl_low || 0), formatCurrency(declaration.vat_low || 0)],
+      ['1c', t.revenue0, formatCurrency(declaration.revenue_nl_zero || 0), '-'],
+      ['1d', t.reverseCharge, formatCurrency(declaration.revenue_nl_other || 0), '-'],
+    ];
+    
+    if (declaration.private_use_amount) {
+      revenueData.push(['1e', t.privateUse, formatCurrency(declaration.private_use_amount), formatCurrency(declaration.private_use_vat || 0)]);
+    }
+    
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [[t.rubric, t.description, t.netAmount, t.vatAmount]],
+      body: revenueData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] }, // blue-500
+      styles: { fontSize: 9 },
+      margin: { left: 20, right: 20 },
+    });
+    
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Section 2: Deductible VAT (Voorbelasting)
+    doc.setFontSize(12);
+    doc.text(t.deductibleSection, 20, yPos);
+    yPos += 8;
+    
+    const deductibleData = [
+      ['5b', t.inputVat, formatCurrency(declaration.input_vat_general || 0)],
+    ];
+    
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [[t.rubric, t.description, t.vatAmount]],
+      body: deductibleData,
+      theme: 'striped',
+      headStyles: { fillColor: [168, 85, 247] }, // purple-500
+      styles: { fontSize: 9 },
+      margin: { left: 20, right: 20 },
+    });
+    
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Section 3: Calculation (Berekening)
+    doc.setFontSize(12);
+    doc.text(t.calculation, 20, yPos);
+    yPos += 8;
+    
+    const calculationData = [
+      [t.totalVatToPay, formatCurrency(declaration.total_vat_to_pay || 0)],
+      [t.totalVatDeductible, formatCurrency(declaration.total_vat_deductible || 0)],
+      [t.balance, formatCurrency(declaration.balance || 0)],
+    ];
+    
+    (doc as any).autoTable({
+      startY: yPos,
+      body: calculationData,
+      theme: 'plain',
+      styles: { fontSize: 10, fontStyle: 'bold' },
+      columnStyles: {
+        0: { halign: 'left' },
+        1: { halign: 'right' },
+      },
+      margin: { left: 20, right: 20 },
+    });
+    
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+    
+    // Balance indicator
+    if (declaration.balance > 0) {
+      doc.setFontSize(11);
+      doc.setTextColor(220, 38, 38); // red-600
+      doc.text(t.toPay, 20, yPos);
+    } else if (declaration.balance < 0) {
+      doc.setFontSize(11);
+      doc.setTextColor(22, 163, 74); // green-600
+      doc.text(t.toReceive, 20, yPos);
+    }
+    
+    // Notes section
+    if (declaration.notes) {
+      yPos += 15;
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text(t.notes + ':', 20, yPos);
+      yPos += 6;
+      doc.setFontSize(9);
+      const splitNotes = doc.splitTextToSize(declaration.notes, 170);
+      doc.text(splitNotes, 20, yPos);
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184); // slate-400
+    const footerText = `${t.generatedOn}: ${new Date().toLocaleDateString(language)}`;
+    doc.text(footerText, 105, 285, { align: 'center' });
+    
+    // Save PDF
+    const filename = `BTW-Aangifte-${declaration.year}-${declaration.period}.pdf`;
+    doc.save(filename);
+    
+  } catch (error) {
+    console.error('Error generating BTW PDF:', error);
+    throw error;
+  }
+}
+
+function getBTWTranslations(language: string): any {
+  const translations: any = {
+    nl: {
+      title: 'BTW Aangifte',
+      period: 'Periode',
+      status: 'Status',
+      statusDraft: 'Concept',
+      statusSubmitted: 'Ingediend',
+      statusPaid: 'Betaald',
+      vatNumber: 'BTW-nummer',
+      revenueSection: 'Prestaties/Levering (Omzet)',
+      deductibleSection: 'Voorbelasting',
+      calculation: 'Berekening',
+      rubric: 'Rubriek',
+      description: 'Omschrijving',
+      netAmount: 'Bedrag (netto)',
+      vatAmount: 'BTW-bedrag',
+      revenue21: 'Leveringen/diensten belast met hoog tarief (21%)',
+      revenue9: 'Leveringen/diensten belast met laag tarief (9%)',
+      revenue0: 'Leveringen/diensten belast met 0% of niet bij u belast',
+      reverseCharge: 'Leveringen waarbij BTW naar u is verlegd',
+      privateUse: 'Privégebruik',
+      inputVat: 'Voorbelasting (algemeen)',
+      totalVatToPay: 'Totaal te betalen BTW',
+      totalVatDeductible: 'Totaal terug te vragen BTW',
+      balance: 'Saldo',
+      toPay: 'Te betalen aan Belastingdienst',
+      toReceive: 'Terug te ontvangen van Belastingdienst',
+      notes: 'Opmerkingen',
+      generatedOn: 'Gegenereerd op',
+    },
+    pl: {
+      title: 'Deklaracja VAT',
+      period: 'Okres',
+      status: 'Status',
+      statusDraft: 'Szkic',
+      statusSubmitted: 'Złożona',
+      statusPaid: 'Opłacona',
+      vatNumber: 'Numer VAT',
+      revenueSection: 'Przychody',
+      deductibleSection: 'VAT do odliczenia',
+      calculation: 'Obliczenie',
+      rubric: 'Rubryka',
+      description: 'Opis',
+      netAmount: 'Kwota netto',
+      vatAmount: 'Kwota VAT',
+      revenue21: 'Sprzedaż 21% VAT',
+      revenue9: 'Sprzedaż 9% VAT',
+      revenue0: 'Sprzedaż 0% VAT',
+      reverseCharge: 'Odwrotne obciążenie',
+      privateUse: 'Użytek prywatny',
+      inputVat: 'VAT naliczony',
+      totalVatToPay: 'Suma VAT do zapłaty',
+      totalVatDeductible: 'Suma VAT do odliczenia',
+      balance: 'Saldo',
+      toPay: 'Do zapłaty',
+      toReceive: 'Do otrzymania',
+      notes: 'Uwagi',
+      generatedOn: 'Wygenerowano',
+    },
+    en: {
+      title: 'VAT Declaration',
+      period: 'Period',
+      status: 'Status',
+      statusDraft: 'Draft',
+      statusSubmitted: 'Submitted',
+      statusPaid: 'Paid',
+      vatNumber: 'VAT Number',
+      revenueSection: 'Revenue',
+      deductibleSection: 'Deductible VAT',
+      calculation: 'Calculation',
+      rubric: 'Item',
+      description: 'Description',
+      netAmount: 'Net Amount',
+      vatAmount: 'VAT Amount',
+      revenue21: 'Sales at 21% VAT',
+      revenue9: 'Sales at 9% VAT',
+      revenue0: 'Sales at 0% VAT',
+      reverseCharge: 'Reverse Charge',
+      privateUse: 'Private Use',
+      inputVat: 'Input VAT',
+      totalVatToPay: 'Total VAT Payable',
+      totalVatDeductible: 'Total VAT Deductible',
+      balance: 'Balance',
+      toPay: 'To Pay',
+      toReceive: 'To Receive',
+      notes: 'Notes',
+      generatedOn: 'Generated on',
+    },
+  };
+  
+  return translations[language] || translations['en'];
+}

@@ -137,3 +137,6 @@ export interface InvoiceSettings {
   selectedTemplateId: string;
   customTemplates: InvoiceTemplate[];
 }
+
+// Export BTW types
+export type { BTWDeclaration, BTWPeriod, BTWStatus, BTWCalculationData } from './btw';

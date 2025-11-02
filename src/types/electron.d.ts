@@ -17,6 +17,19 @@ declare global {
         deleteProduct: (id: string) => Promise<boolean>;
         getCompany: () => Promise<any>;
         updateCompany: (company: any) => Promise<any>;
+        getExpenses: () => Promise<any[]>;
+        createExpense: (expense: any) => Promise<any>;
+        updateExpense: (id: string, expense: any) => Promise<any>;
+        deleteExpense: (id: string) => Promise<boolean>;
+        getKilometers: () => Promise<any[]>;
+        createKilometer: (kilometer: any) => Promise<any>;
+        updateKilometer: (id: string, kilometer: any) => Promise<any>;
+        deleteKilometer: (id: string) => Promise<boolean>;
+        getBTWDeclarations: () => Promise<any[]>;
+        getBTWByPeriod: (year: number, period: string) => Promise<any | null>;
+        createBTW: (btw: any) => Promise<any>;
+        updateBTW: (id: string, btw: any) => Promise<any>;
+        deleteBTW: (id: string) => Promise<boolean>;
       };
       fileSystem: {
         savePDF: (filename: string, buffer: ArrayBuffer) => Promise<string>;

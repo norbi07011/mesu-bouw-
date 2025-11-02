@@ -3,7 +3,7 @@ import { Toaster } from 'sonner';
 import './i18n';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { House, FileText, Users, Package, ChartBar, Gear, Download, DeviceMobile, Car } from '@phosphor-icons/react';
+import { House, FileText, Users, Package, ChartBar, Gear, Download, DeviceMobile, Car, Receipt } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import Dashboard from './pages/Dashboard';
 import Invoices from './pages/Invoices';
@@ -13,8 +13,9 @@ import Products from './pages/Products';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Kilometers from './pages/Kilometers';
+import BTWAangifte from './pages/BTWAangifte';
 
-type Page = 'dashboard' | 'invoices' | 'invoices-new' | 'clients' | 'products' | 'kilometers' | 'reports' | 'settings';
+type Page = 'dashboard' | 'invoices' | 'invoices-new' | 'clients' | 'products' | 'kilometers' | 'btw' | 'reports' | 'settings';
 
 function App() {
   const { t } = useTranslation();
@@ -288,6 +289,7 @@ Adres sieciowy: http://192.168.178.75:5002/
     { id: 'clients' as Page, icon: Users, label: t('nav.clients') },
     { id: 'products' as Page, icon: Package, label: t('nav.products') },
     { id: 'kilometers' as Page, icon: Car, label: t('nav.kilometers') },
+    { id: 'btw' as Page, icon: Receipt, label: t('nav.btw') },
     { id: 'reports' as Page, icon: ChartBar, label: t('nav.reports') },
     { id: 'settings' as Page, icon: Gear, label: t('nav.settings') },
   ];
@@ -308,6 +310,8 @@ Adres sieciowy: http://192.168.178.75:5002/
         return <Products />;
       case 'kilometers':
         return <Kilometers />;
+      case 'btw':
+        return <BTWAangifte />;
       case 'reports':
         return <Reports />;
       case 'settings':

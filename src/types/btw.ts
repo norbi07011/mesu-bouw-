@@ -81,6 +81,13 @@ export interface BTWCalculationData {
     deductibleVat: number;
   };
   
+  // From kilometers (private use)
+  kilometers?: {
+    total: number;
+    privateUse: number;
+    privateUseVat: number;
+  };
+  
   // Calculated balance
   balance: number;
 }

@@ -526,6 +526,326 @@ export function useFileSystem() {
   };
 }
 
+// Hook dla wydatków (Expenses)
+export function useExpenses() {
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchExpenses = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.getExpenses) {
+        const result = await window.electronAPI.database.getExpenses();
+        setExpenses(result || []);
+      } else {
+        const stored = localStorage.getItem('expenses');
+        setExpenses(stored ? JSON.parse(stored) : []);
+      }
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      setExpenses([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createExpense = useCallback(async (expense: any) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.createExpense) {
+        const result = await window.electronAPI.database.createExpense(expense);
+        await fetchExpenses();
+        return result;
+      } else {
+        const stored = localStorage.getItem('expenses');
+        const expenses = stored ? JSON.parse(stored) : [];
+        const newExpense = { ...expense, id: Date.now().toString(), created_at: new Date().toISOString() };
+        const updated = [...expenses, newExpense];
+        localStorage.setItem('expenses', JSON.stringify(updated));
+        await fetchExpenses();
+        return newExpense;
+      }
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      throw error;
+    }
+  }, [fetchExpenses]);
+
+  const updateExpense = useCallback(async (id: string, expense: any) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.updateExpense) {
+        const result = await window.electronAPI.database.updateExpense(id, expense);
+        await fetchExpenses();
+        return result;
+      } else {
+        const stored = localStorage.getItem('expenses');
+        const expenses = stored ? JSON.parse(stored) : [];
+        const updated = expenses.map((exp: any) => exp.id === id ? { ...exp, ...expense, updated_at: new Date().toISOString() } : exp);
+        localStorage.setItem('expenses', JSON.stringify(updated));
+        await fetchExpenses();
+        return expense;
+      }
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      throw error;
+    }
+  }, [fetchExpenses]);
+
+  const deleteExpense = useCallback(async (id: string) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.deleteExpense) {
+        const result = await window.electronAPI.database.deleteExpense(id);
+        await fetchExpenses();
+        return result;
+      } else {
+        const stored = localStorage.getItem('expenses');
+        const expenses = stored ? JSON.parse(stored) : [];
+        const updated = expenses.filter((exp: any) => exp.id !== id);
+        localStorage.setItem('expenses', JSON.stringify(updated));
+        await fetchExpenses();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw error;
+    }
+  }, [fetchExpenses]);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
+  return {
+    expenses,
+    loading,
+    createExpense,
+    updateExpense,
+    deleteExpense,
+    refetch: fetchExpenses
+  };
+}
+
+// Hook dla kilometrów
+export function useKilometers() {
+  const [kilometers, setKilometers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchKilometers = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.getKilometers) {
+        const result = await window.electronAPI.database.getKilometers();
+        setKilometers(result || []);
+      } else {
+        const stored = localStorage.getItem('kilometer-entries');
+        setKilometers(stored ? JSON.parse(stored) : []);
+      }
+    } catch (error) {
+      console.error('Error fetching kilometers:', error);
+      // Fallback do localStorage
+      const stored = localStorage.getItem('kilometer-entries');
+      setKilometers(stored ? JSON.parse(stored) : []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createKilometer = useCallback(async (kilometer: any) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.createKilometer) {
+        const result = await window.electronAPI.database.createKilometer(kilometer);
+        await fetchKilometers();
+        return result;
+      } else {
+        const stored = localStorage.getItem('kilometer-entries');
+        const kilometers = stored ? JSON.parse(stored) : [];
+        const newKilometer = { ...kilometer, id: Date.now().toString(), createdAt: new Date().toISOString() };
+        const updated = [...kilometers, newKilometer];
+        localStorage.setItem('kilometer-entries', JSON.stringify(updated));
+        await fetchKilometers();
+        return newKilometer;
+      }
+    } catch (error) {
+      console.error('Error creating kilometer:', error);
+      throw error;
+    }
+  }, [fetchKilometers]);
+
+  const updateKilometer = useCallback(async (id: string, kilometer: any) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.updateKilometer) {
+        const result = await window.electronAPI.database.updateKilometer(id, kilometer);
+        await fetchKilometers();
+        return result;
+      } else {
+        const stored = localStorage.getItem('kilometer-entries');
+        const kilometers = stored ? JSON.parse(stored) : [];
+        const updated = kilometers.map((km: any) => km.id === id ? { ...km, ...kilometer, updatedAt: new Date().toISOString() } : km);
+        localStorage.setItem('kilometer-entries', JSON.stringify(updated));
+        await fetchKilometers();
+        return kilometer;
+      }
+    } catch (error) {
+      console.error('Error updating kilometer:', error);
+      throw error;
+    }
+  }, [fetchKilometers]);
+
+  const deleteKilometer = useCallback(async (id: string) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.deleteKilometer) {
+        const result = await window.electronAPI.database.deleteKilometer(id);
+        await fetchKilometers();
+        return result;
+      } else {
+        const stored = localStorage.getItem('kilometer-entries');
+        const kilometers = stored ? JSON.parse(stored) : [];
+        const updated = kilometers.filter((km: any) => km.id !== id);
+        localStorage.setItem('kilometer-entries', JSON.stringify(updated));
+        await fetchKilometers();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting kilometer:', error);
+      throw error;
+    }
+  }, [fetchKilometers]);
+
+  useEffect(() => {
+    fetchKilometers();
+  }, [fetchKilometers]);
+
+  return {
+    kilometers,
+    loading,
+    createKilometer,
+    updateKilometer,
+    deleteKilometer,
+    refetch: fetchKilometers
+  };
+}
+
+// Hook dla deklaracji BTW
+export function useBTW() {
+  const [declarations, setDeclarations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDeclarations = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.getBTWDeclarations) {
+        const result = await window.electronAPI.database.getBTWDeclarations();
+        setDeclarations(result || []);
+      } else {
+        const stored = localStorage.getItem('btw-declarations');
+        setDeclarations(stored ? JSON.parse(stored) : []);
+      }
+    } catch (error) {
+      console.error('Error fetching BTW declarations:', error);
+      const stored = localStorage.getItem('btw-declarations');
+      setDeclarations(stored ? JSON.parse(stored) : []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getBTWByPeriod = useCallback(async (year: number, period: string) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.getBTWByPeriod) {
+        return await window.electronAPI.database.getBTWByPeriod(year, period);
+      } else {
+        const stored = localStorage.getItem('btw-declarations');
+        const declarations = stored ? JSON.parse(stored) : [];
+        return declarations.find((d: any) => d.year === year && d.period === period) || null;
+      }
+    } catch (error) {
+      console.error('Error fetching BTW by period:', error);
+      return null;
+    }
+  }, []);
+
+  const createBTW = useCallback(async (btw: any) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.createBTW) {
+        const result = await window.electronAPI.database.createBTW(btw);
+        await fetchDeclarations();
+        return result;
+      } else {
+        const stored = localStorage.getItem('btw-declarations');
+        const declarations = stored ? JSON.parse(stored) : [];
+        const newBTW = { 
+          ...btw, 
+          id: Date.now().toString(), 
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        const updated = [...declarations, newBTW];
+        localStorage.setItem('btw-declarations', JSON.stringify(updated));
+        await fetchDeclarations();
+        return newBTW;
+      }
+    } catch (error) {
+      console.error('Error creating BTW:', error);
+      throw error;
+    }
+  }, [fetchDeclarations]);
+
+  const updateBTW = useCallback(async (id: string, btw: any) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.updateBTW) {
+        const result = await window.electronAPI.database.updateBTW(id, btw);
+        await fetchDeclarations();
+        return result;
+      } else {
+        const stored = localStorage.getItem('btw-declarations');
+        const declarations = stored ? JSON.parse(stored) : [];
+        const updated = declarations.map((decl: any) => 
+          decl.id === id ? { ...decl, ...btw, updated_at: new Date().toISOString() } : decl
+        );
+        localStorage.setItem('btw-declarations', JSON.stringify(updated));
+        await fetchDeclarations();
+        return btw;
+      }
+    } catch (error) {
+      console.error('Error updating BTW:', error);
+      throw error;
+    }
+  }, [fetchDeclarations]);
+
+  const deleteBTW = useCallback(async (id: string) => {
+    try {
+      if (isElectron() && window.electronAPI && window.electronAPI.database.deleteBTW) {
+        const result = await window.electronAPI.database.deleteBTW(id);
+        await fetchDeclarations();
+        return result;
+      } else {
+        const stored = localStorage.getItem('btw-declarations');
+        const declarations = stored ? JSON.parse(stored) : [];
+        const updated = declarations.filter((decl: any) => decl.id !== id);
+        localStorage.setItem('btw-declarations', JSON.stringify(updated));
+        await fetchDeclarations();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting BTW:', error);
+      throw error;
+    }
+  }, [fetchDeclarations]);
+
+  useEffect(() => {
+    fetchDeclarations();
+  }, [fetchDeclarations]);
+
+  return {
+    declarations,
+    loading,
+    createBTW,
+    updateBTW,
+    deleteBTW,
+    getBTWByPeriod,
+    refetch: fetchDeclarations
+  };
+}
+
 // Pomocnicza funkcja do konwersji na CSV
 function convertToCSV(data: any[]): string {
   if (!data || data.length === 0) return '';
